@@ -19,14 +19,23 @@ Eli Bendersky (eliben@gmail.com)
 License: this code is in the public domain
 Last modified: 19.01.2009
 """
+
+# system stack
 import sys, os, random
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+#visual stack
 import matplotlib
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
+
+#user stack
+# Relative User Stack
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+os.sys.path.insert(1, parent_dir)
+from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 
 
 class AppForm(QMainWindow):
@@ -38,9 +47,9 @@ class AppForm(QMainWindow):
         self.create_main_frame()
         self.create_status_bar()
 
-        self.load_netcdf()
 
-        self.textbox.setText('1 2 3 4')
+        self.textbox.setText('/Users/bell/ecoraid/2016/CTDcasts/dy1606/working/dy1606c001_ctd.nc')
+        self.inverted = False
         self.on_draw()
 
     def save_plot(self):
@@ -77,7 +86,7 @@ class AppForm(QMainWindow):
         
         QMessageBox.information(self, "Click!", msg)
     
-    def on_draw(self):
+    def on_draw_example(self):
         """ Redraws the figure
         """
         str = unicode(self.textbox.text())
@@ -98,6 +107,28 @@ class AppForm(QMainWindow):
             alpha=0.44,
             picker=5)
         
+        self.canvas.draw()
+
+    def on_draw(self):
+        """ Redraws the figure
+        """
+        self.load_netcdf()
+        xdata = self.ncdata['T_28'][0,:,0,0]
+        xdata2 = self.ncdata['T2_35'][0,:,0,0]
+        y = self.ncdata['dep'][:]
+
+        # clear the axes and redraw the plot anew
+        #
+        self.axes.clear()        
+        self.axes.grid(self.grid_cb.isChecked())
+        
+        self.axes.plot(
+            xdata,y,
+            xdata2,y,
+            marker='*')
+        if not self.inverted:
+            self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
+            self.inverted = True
         self.canvas.draw()
     
     def create_main_frame(self):
@@ -139,21 +170,14 @@ class AppForm(QMainWindow):
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
         
-        slider_label = QLabel('Bar width (%):')
-        self.slider = QSlider(Qt.Horizontal)
-        self.slider.setRange(1, 100)
-        self.slider.setValue(20)
-        self.slider.setTracking(True)
-        self.slider.setTickPosition(QSlider.TicksBothSides)
-        self.connect(self.slider, SIGNAL('valueChanged(int)'), self.on_draw)
+
         
         #
         # Layout with box sizers
         # 
         hbox = QHBoxLayout()
         
-        for w in [  self.textbox, self.draw_button, self.grid_cb,
-                    slider_label, self.slider]:
+        for w in [  self.textbox, self.draw_button, self.grid_cb]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
@@ -211,6 +235,12 @@ class AppForm(QMainWindow):
         if checkable:
             action.setCheckable(True)
         return action
+
+    def load_netcdf( self, file='/Users/bell/ecoraid/2016/CTDcasts/dy1606/working/dy1606c001_ctd.nc'):
+        df = EcoFOCI_netCDF(unicode(self.textbox.text()))
+        self.vars_dic = df.get_vars()
+        self.ncdata = df.ncreadfile_dic()
+        df.close()
 
 
 def main():
