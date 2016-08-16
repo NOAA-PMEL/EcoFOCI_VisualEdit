@@ -91,28 +91,46 @@ class AppForm(QMainWindow):
     def on_draw(self):
         """ Redraws the figure
         """
-        if str(self.param_dropdown.currentText()) == 'temperature':
+        if str(self.param_dropdown.currentText()) == 'Temperature':
             var1,var2 = ['T_28','T2_35']
-        elif str(self.param_dropdown.currentText()) == 'salinity':
+        elif str(self.param_dropdown.currentText()) == 'Salinity':
             var1,var2 = ['S_41', 'S_42']
-        elif str(self.param_dropdown.currentText()) == 'oxygen':
+        elif str(self.param_dropdown.currentText()) == 'Oxygen':
             var1,var2 = ['O_65','CTDOXY_4221']
+        elif str(self.param_dropdown.currentText()) == 'ECO-FLNT':
+            var1,var2 = ['F_903','Trb_980']
+        elif str(self.param_dropdown.currentText()) == 'PAR':
+            var1,var2 = ['PAR_905','']
         else:
             var1,var2 = ['T_28','T2_35'] 
         self.load_netcdf()
-        xdata = self.ncdata[var1][0,:,0,0]
-        xdata2 = self.ncdata[var2][0,:,0,0]
-        y = self.ncdata['dep'][:]
+        try:
+            xdata = self.ncdata[var1][0,:,0,0]
+            xdata2 = self.ncdata[var2][0,:,0,0]
+            y = self.ncdata['dep'][:]
 
-        # clear the axes and redraw the plot anew
-        #
-        self.axes.clear()        
-        self.axes.grid(self.grid_cb.isChecked())
-        
-        self.axes.plot(
-            xdata,y,
-            xdata2,y,
-            marker='*')
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            self.axes.plot(
+                xdata,y,
+                xdata2,y,
+                marker='*')
+        except KeyError:
+            xdata = self.ncdata[var1][0,:,0,0]
+            y = self.ncdata['dep'][:]
+
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            self.axes.plot(
+                xdata,y,
+                marker='*')            
+
         if not self.inverted:
             self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
             self.inverted = True
@@ -158,9 +176,11 @@ class AppForm(QMainWindow):
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
         
         self.param_dropdown = QComboBox()
-        self.param_dropdown.addItem("temperature")
-        self.param_dropdown.addItem("salinity")
-        self.param_dropdown.addItem("oxygen")
+        self.param_dropdown.addItem("Temperature")
+        self.param_dropdown.addItem("Salinity")
+        self.param_dropdown.addItem("Oxygen")
+        self.param_dropdown.addItem("ECO-FLNT")
+        self.param_dropdown.addItem("PAR")
         self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
         
         #
