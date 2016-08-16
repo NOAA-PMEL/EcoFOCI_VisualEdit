@@ -50,6 +50,7 @@ class AppForm(QMainWindow):
 
         self.textbox.setText('/Users/bell/ecoraid/2016/CTDcasts/dy1606/working/dy1606c001_ctd.nc')
         self.inverted = False
+        #self.param_dropdown.addItem('temperature')
         self.on_draw()
 
     def save_plot(self):
@@ -81,40 +82,26 @@ class AppForm(QMainWindow):
         # It carries lots of information, of which we're using
         # only a small amount here.
         # 
-        box_points = event.artist.get_bbox().get_points()
-        msg = "You've clicked on a bar with coords:\n %s" % box_points
+        xpoints = event.artist.get_xdata()
+        msg = "You've clicked near point:\n %s" % xpoints
         
         QMessageBox.information(self, "Click!", msg)
-    
-    def on_draw_example(self):
-        """ Redraws the figure
-        """
-        str = unicode(self.textbox.text())
-        self.data = map(int, str.split())
-        
-        x = range(len(self.data))
 
-        # clear the axes and redraw the plot anew
-        #
-        self.axes.clear()        
-        self.axes.grid(self.grid_cb.isChecked())
-        
-        self.axes.bar(
-            left=x, 
-            height=self.data, 
-            width=self.slider.value() / 100.0, 
-            align='center', 
-            alpha=0.44,
-            picker=5)
-        
-        self.canvas.draw()
 
     def on_draw(self):
         """ Redraws the figure
         """
+        if str(self.param_dropdown.currentText()) == 'temperature':
+            var1,var2 = ['T_28','T2_35']
+        elif str(self.param_dropdown.currentText()) == 'salinity':
+            var1,var2 = ['S_41', 'S_42']
+        elif str(self.param_dropdown.currentText()) == 'oxygen':
+            var1,var2 = ['O_65','CTDOXY_4221']
+        else:
+            var1,var2 = ['T_28','T2_35'] 
         self.load_netcdf()
-        xdata = self.ncdata['T_28'][0,:,0,0]
-        xdata2 = self.ncdata['T2_35'][0,:,0,0]
+        xdata = self.ncdata[var1][0,:,0,0]
+        xdata2 = self.ncdata[var2][0,:,0,0]
         y = self.ncdata['dep'][:]
 
         # clear the axes and redraw the plot anew
@@ -138,7 +125,7 @@ class AppForm(QMainWindow):
         # 5x4 inches, 100 dots-per-inch
         #
         self.dpi = 100
-        self.fig = Figure((5.0, 4.0), dpi=self.dpi)
+        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
         
@@ -170,14 +157,19 @@ class AppForm(QMainWindow):
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
         
-
+        self.param_dropdown = QComboBox()
+        self.param_dropdown.addItem("temperature")
+        self.param_dropdown.addItem("salinity")
+        self.param_dropdown.addItem("oxygen")
+        self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
         
         #
         # Layout with box sizers
         # 
         hbox = QHBoxLayout()
         
-        for w in [  self.textbox, self.draw_button, self.grid_cb]:
+        for w in [  self.textbox, self.draw_button, self.grid_cb,
+                    self.param_dropdown]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
