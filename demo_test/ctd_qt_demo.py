@@ -48,7 +48,7 @@ class AppForm(QMainWindow):
         self.create_status_bar()
 
 
-        self.textbox.setText('/Users/bell/ecoraid/2016/CTDcasts/dy1606/working/dy1606c001_ctd.nc')
+        self.textbox.setText(parent_dir+'/example_data/example_ctd_data.nc')
         self.inverted = False
         #self.param_dropdown.addItem('temperature')
         self.on_draw()
