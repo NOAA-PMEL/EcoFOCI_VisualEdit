@@ -40,7 +40,7 @@ from matplotlib.figure import Figure
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(1, parent_dir)
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
-from io_utils.EcoFOCI_netCDF_write import NetCDF_Create
+from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
 
 
 class AppForm(QMainWindow):
@@ -163,7 +163,11 @@ class AppForm(QMainWindow):
         self.canvas.draw()
 
     def on_save(self):
-        pass
+        """
+        save to same location with .ed.nc ending
+        """
+        file_out = unicode(self.textbox.text()).replace('.nc','.ed.nc')
+        self.save_netcdf(file_out)
     
     def create_main_frame(self):
         self.main_frame = QWidget()
@@ -217,7 +221,7 @@ class AppForm(QMainWindow):
         hbox = QHBoxLayout()
         
         for w in [  self.textbox, self.draw_button, self.grid_cb,
-                    self.param_dropdown]:
+                    self.param_dropdown, self.save_button]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
@@ -302,10 +306,14 @@ class AppForm(QMainWindow):
         df.close()
 
     def save_netcdf( self, file):
-        df = NetCDF_Create(unicode(self.textbox.text()))
-        self.vars_dic = df.get_vars()
-        self.ncdata = df.ncreadfile_dic()
-        df.close()
+        ncinstance = NetCDF_Create_CTD(savefile=file)
+        ncinstance.file_create()
+        ncinstance.dimension_init(time_len=len(self.ncdata['time']))
+        ncinstance.variable_init(self.vars_dic)
+        ncinstance.add_coord_data(depth=self.ncdata['depth'], latitude=self.ncdata['lat'], 
+                longitude=self.ncdata['lon'], time1=self.ncdata['time'], time2=self.ncdata['time1'],)
+        ncinstance.add_data(self.vars_dic,data_dic=self.ncdata)
+        ncinstance.close()
 
 def main():
     app = QApplication(sys.argv)

@@ -30,7 +30,7 @@ __status__   = "Development"
 """-------------------------------NCFile Creation--------------------------------------"""
 
         
-class NetCDF_Create(object):
+class NetCDF_Create_CTD(object):
     """ Class instance to generate a NetCDF file.  
 
     Standards
@@ -45,7 +45,7 @@ class NetCDF_Create(object):
     ToDo: Error Checking
     
     Use this to create a nc file with all default values
-        ncinstance = NetCDF_Create()
+        ncinstance = NetCDF_Create_CTD()
         ncinstance.file_create()
         ncinstance.sbeglobal_atts()
         ncinstance.dimension_init()
@@ -65,8 +65,8 @@ class NetCDF_Create(object):
         self.savefile = savefile
     
     def file_create(self):
-            rootgrpID = Dataset(self.savefile, NetCDF_Create.nc_read, 
-                                format=NetCDF_Create.nc_format)
+            rootgrpID = Dataset(self.savefile, NetCDF_Create_CTD.nc_read, 
+                                format=NetCDF_Create_CTD.nc_format)
             self.rootgrpID = rootgrpID
             return ( rootgrpID )
         
@@ -98,7 +98,7 @@ class NetCDF_Create(object):
         self.rootgrpID.SERIAL_NUMBER = SerialNumber
         self.rootgrpID.History = History
         
-    def dimension_init(self, time_len=1):
+    def dimension_init(self, time_len=1, depth_len=1):
         """
         Assumes
         -------
@@ -111,8 +111,8 @@ class NetCDF_Create(object):
 
         self.dim_vars = ['time', 'depth', 'lat', 'lon']
         
-        self.rootgrpID.createDimension( self.dim_vars[0], time_len ) #time
-        self.rootgrpID.createDimension( self.dim_vars[1], 1 ) #depth
+        self.rootgrpID.createDimension( self.dim_vars[0], 1 ) #time
+        self.rootgrpID.createDimension( self.dim_vars[1], depth_len ) #depth
         self.rootgrpID.createDimension( self.dim_vars[2], 1 ) #lat
         self.rootgrpID.createDimension( self.dim_vars[3], 1 ) #lon
         
