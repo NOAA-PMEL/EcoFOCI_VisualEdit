@@ -25,6 +25,10 @@ import sys, os, random
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+#science stack
+import numpy as np
+import json
+
 #visual stack
 import matplotlib
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
@@ -36,6 +40,7 @@ from matplotlib.figure import Figure
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(1, parent_dir)
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
+from io_utils.EcoFOCI_netCDF_write import NetCDF_Create
 
 
 class AppForm(QMainWindow):
@@ -45,12 +50,11 @@ class AppForm(QMainWindow):
 
         self.create_menu()
         self.create_main_frame()
-        self.create_status_bar()
-
 
         self.textbox.setText(parent_dir+'/example_data/example_ctd_data.nc')
+        self.populate_dropdown()
+        self.create_status_bar()
         self.inverted = False
-        #self.param_dropdown.addItem('temperature')
         self.on_draw()
 
     def save_plot(self):
@@ -82,15 +86,18 @@ class AppForm(QMainWindow):
         # It carries lots of information, of which we're using
         # only a small amount here.
         # 
-        xpoints = event.artist.get_xdata()
-        msg = "You've clicked near point:\n %s" % xpoints
+        xdata = event.artist.get_xdata()
+        ydata = event.artist.get_ydata()
+        ind = event.ind
+        msg = "You've clicked on a point with coords:\n {0}".format( tuple(zip(xdata[ind], ydata[ind])))
         
         QMessageBox.information(self, "Click!", msg)
-
 
     def on_draw(self):
         """ Redraws the figure
         """
+        """
+        # Following logic associates an arbitrary name to an Epic keycode
         if str(self.param_dropdown.currentText()) == 'Temperature':
             var1,var2 = ['T_28','T2_35']
         elif str(self.param_dropdown.currentText()) == 'Salinity':
@@ -103,10 +110,12 @@ class AppForm(QMainWindow):
             var1,var2 = ['PAR_905','']
         else:
             var1,var2 = ['T_28','T2_35'] 
+        """
+        var1 = str(self.param_dropdown.currentText())
         self.load_netcdf()
         try:
             xdata = self.ncdata[var1][0,:,0,0]
-            xdata2 = self.ncdata[var2][0,:,0,0]
+            #xdata2 = self.ncdata[var2][0,:,0,0]
             y = self.ncdata['dep'][:]
 
             # clear the axes and redraw the plot anew
@@ -116,8 +125,9 @@ class AppForm(QMainWindow):
             
             self.axes.plot(
                 xdata,y,
-                xdata2,y,
-                marker='*')
+                #xdata2,y,
+                marker='*',
+                picker=True)            
         except KeyError:
             xdata = self.ncdata[var1][0,:,0,0]
             y = self.ncdata['dep'][:]
@@ -129,12 +139,31 @@ class AppForm(QMainWindow):
             
             self.axes.plot(
                 xdata,y,
-                marker='*')            
+                marker='*',
+                picker=True)            
+        except IndexError:
+            xdata = self.ncdata[var1][:]
+            y = self.ncdata['dep'][:]
+
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            self.axes.plot(
+                xdata,y,
+                marker='*',
+                picker=True)
+
+        self.fig.suptitle(self.station_data, fontsize=12)
 
         if not self.inverted:
             self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
             self.inverted = True
         self.canvas.draw()
+
+    def on_save(self):
+        pass
     
     def create_main_frame(self):
         self.main_frame = QWidget()
@@ -170,17 +199,16 @@ class AppForm(QMainWindow):
         
         self.draw_button = QPushButton("&Draw")
         self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
-        
+
+        self.save_button = QPushButton("&save")
+        self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
+                
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
         
         self.param_dropdown = QComboBox()
-        self.param_dropdown.addItem("Temperature")
-        self.param_dropdown.addItem("Salinity")
-        self.param_dropdown.addItem("Oxygen")
-        self.param_dropdown.addItem("ECO-FLNT")
-        self.param_dropdown.addItem("PAR")
+
         self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
         
         #
@@ -200,9 +228,28 @@ class AppForm(QMainWindow):
         
         self.main_frame.setLayout(vbox)
         self.setCentralWidget(self.main_frame)
-    
+
+    def populate_dropdown(self):
+        self.load_netcdf()
+        self.station_data = {}
+        for k in self.vars_dic.keys():
+            if k not in ['time','time2','lat','lon']:
+                self.param_dropdown.addItem(k)
+            else:
+                self.station_data[k] =str(self.ncdata[k][0])
+
+        """
+        #Use following code if hardwired variable names are desired.  This just sets up
+        # the options in the dropdown menu and is useful for multiple plots per screen
+        self.param_dropdown.addItem("Temperature")
+        self.param_dropdown.addItem("Salinity")
+        self.param_dropdown.addItem("Oxygen")
+        self.param_dropdown.addItem("ECO-FLNT")
+        self.param_dropdown.addItem("PAR")
+        """
+
     def create_status_bar(self):
-        self.status_text = QLabel("This is a demo")
+        self.status_text = QLabel(json.dumps(self.station_data))
         self.statusBar().addWidget(self.status_text, 1)
         
     def create_menu(self):        
@@ -248,12 +295,17 @@ class AppForm(QMainWindow):
             action.setCheckable(True)
         return action
 
-    def load_netcdf( self, file='/Users/bell/ecoraid/2016/CTDcasts/dy1606/working/dy1606c001_ctd.nc'):
+    def load_netcdf( self, file=parent_dir+'/example_data/example_ctd_data.nc'):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
         self.vars_dic = df.get_vars()
         self.ncdata = df.ncreadfile_dic()
         df.close()
 
+    def save_netcdf( self, file):
+        df = NetCDF_Create(unicode(self.textbox.text()))
+        self.vars_dic = df.get_vars()
+        self.ncdata = df.ncreadfile_dic()
+        df.close()
 
 def main():
     app = QApplication(sys.argv)
