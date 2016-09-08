@@ -1,6 +1,6 @@
 """
 
-ctd_qt_demo.py
+timeseries_qt_demo.py
 
 ----
 Modification of demo
@@ -42,21 +42,20 @@ from matplotlib.figure import Figure
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(1, parent_dir)
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
-from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
+from calc.EPIC2Datetime import EPIC2Datetime 
 
 
 class AppForm(QMainWindow):
     def __init__(self, parent=None):
         QMainWindow.__init__(self, parent)
-        self.setWindowTitle('CTD Demo: PyQt with matplotlib')
+        self.setWindowTitle('Timeseries Demo: PyQt with matplotlib')
 
         self.create_menu()
         self.create_main_frame()
 
-        self.textbox.setText(parent_dir+'/example_data/example_ctd_data.nc')
+        self.textbox.setText(parent_dir+'/example_data/example_timeseries_data.nc')
         self.populate_dropdown()
         self.create_status_bar()
-        self.inverted = False
         self.on_draw()
 
     def save_plot(self):
@@ -115,10 +114,10 @@ class AppForm(QMainWindow):
         """
         var1 = str(self.param_dropdown.currentText())
         self.load_netcdf()
+
         try:
-            xdata = self.ncdata[var1][0,:,0,0]
-            #xdata2 = self.ncdata[var2][0,:,0,0]
-            y = self.ncdata['dep'][:]
+            tdata = self.ncdata['time'][:]
+            y = self.ncdata[var1][:,0,0,0]
 
             # clear the axes and redraw the plot anew
             #
@@ -126,13 +125,12 @@ class AppForm(QMainWindow):
             self.axes.grid(self.grid_cb.isChecked())
             
             self.axes.plot(
-                xdata,y,
-                #xdata2,y,
+                tdata,y,
                 marker='*',
                 picker=True)            
         except KeyError:
-            xdata = self.ncdata[var1][0,:,0,0]
-            y = self.ncdata['dep'][:]
+            tdata = self.ncdata['time'][:]
+            y = self.ncdata[var1][:,0,0,0]
 
             # clear the axes and redraw the plot anew
             #
@@ -140,12 +138,12 @@ class AppForm(QMainWindow):
             self.axes.grid(self.grid_cb.isChecked())
             
             self.axes.plot(
-                xdata,y,
+                tdata,y,
                 marker='*',
                 picker=True)            
         except IndexError:
-            xdata = self.ncdata[var1][:]
-            y = self.ncdata['dep'][:]
+            tdata = self.ncdata['time'][:]
+            y = self.ncdata[var1][:,0,0,0]
 
             # clear the axes and redraw the plot anew
             #
@@ -153,16 +151,12 @@ class AppForm(QMainWindow):
             self.axes.grid(self.grid_cb.isChecked())
             
             self.axes.plot(
-                xdata,y,
+                tdata,y,
                 marker='*',
                 picker=True)
 
         self.fig.suptitle(self.station_data, fontsize=12)
 
-        if not self.inverted:
-            self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
-            self.inverted = True
-        self.canvas.draw()
 
     def on_save(self):
         """
@@ -178,7 +172,7 @@ class AppForm(QMainWindow):
         # 5x4 inches, 100 dots-per-inch
         #
         self.dpi = 100
-        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
+        self.fig = Figure((8.0, 5.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
         
@@ -239,20 +233,11 @@ class AppForm(QMainWindow):
         self.load_netcdf()
         self.station_data = {}
         for k in self.vars_dic.keys():
-            if k not in ['time','time2','lat','lon']:
+            if k not in ['time','time2','lat','lon','depth']:
                 self.param_dropdown.addItem(k)
             else:
                 self.station_data[k] =str(self.ncdata[k][0])
 
-        """
-        #Use following code if hardwired variable names are desired.  This just sets up
-        # the options in the dropdown menu and is useful for multiple plots per screen
-        self.param_dropdown.addItem("Temperature")
-        self.param_dropdown.addItem("Salinity")
-        self.param_dropdown.addItem("Oxygen")
-        self.param_dropdown.addItem("ECO-FLNT")
-        self.param_dropdown.addItem("PAR")
-        """
 
     def create_status_bar(self):
         self.status_text = QLabel(json.dumps(self.station_data))
@@ -301,21 +286,17 @@ class AppForm(QMainWindow):
             action.setCheckable(True)
         return action
 
-    def load_netcdf( self, file=parent_dir+'/example_data/example_ctd_data.nc'):
+    def load_netcdf( self, file=parent_dir+'/example_data/example_timeseries_data.nc'):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
         self.vars_dic = df.get_vars()
         self.ncdata = df.ncreadfile_dic()
         df.close()
 
-    def save_netcdf( self, file):
-        ncinstance = NetCDF_Create_CTD(savefile=file)
-        ncinstance.file_create()
-        ncinstance.dimension_init(time_len=len(self.ncdata['time']))
-        ncinstance.variable_init(self.vars_dic)
-        ncinstance.add_coord_data(depth=self.ncdata['depth'], latitude=self.ncdata['lat'], 
-                longitude=self.ncdata['lon'], time1=self.ncdata['time'], time2=self.ncdata['time1'],)
-        ncinstance.add_data(self.vars_dic,data_dic=self.ncdata)
-        ncinstance.close()
+        #convert epic time
+        #time2 wont exist if it isnt epic keyed time
+        if 'time2' in self.vars_dic.keys():
+            self.ncdata['time'] = EPIC2Datetime(self.ncdata['time'], self.ncdata['time2'])
+
 
 def main():
     app = QApplication(sys.argv)
