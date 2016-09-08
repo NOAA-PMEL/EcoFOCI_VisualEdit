@@ -112,50 +112,34 @@ class AppForm(QMainWindow):
         else:
             var1,var2 = ['T_28','T2_35'] 
         """
+
         var1 = str(self.param_dropdown.currentText())
         self.load_netcdf()
 
-        try:
-            tdata = self.ncdata['time'][:]
-            y = self.ncdata[var1][:,0,0,0]
+        ind = self.ncdata[var1][:,0,0,0] >1e34
+        self.ncdata[var1][ind,0,0,0] = np.nan
 
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
-            self.axes.plot(
-                tdata,y,
-                marker='*',
-                picker=True)            
-        except KeyError:
-            tdata = self.ncdata['time'][:]
-            y = self.ncdata[var1][:,0,0,0]
+        tdata = self.ncdata['time'][:]
+        y = self.ncdata[var1][:,0,0,0]
 
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
-            self.axes.plot(
-                tdata,y,
-                marker='*',
-                picker=True)            
-        except IndexError:
-            tdata = self.ncdata['time'][:]
-            y = self.ncdata[var1][:,0,0,0]
-
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
+        # clear the axes and redraw the plot anew
+        #
+        self.axes.clear()        
+        self.axes.grid(self.grid_cb.isChecked())
+        
+        if self.datapoints_cb.isChecked():
             self.axes.plot(
                 tdata,y,
                 marker='*',
                 picker=True)
+        else:
+            self.axes.plot(
+                tdata,y,
+                picker=True)                    
+
 
         self.fig.suptitle(self.station_data, fontsize=12)
+        self.canvas.draw()
 
 
     def on_save(self):
@@ -171,8 +155,8 @@ class AppForm(QMainWindow):
         # Create the mpl Figure and FigCanvas objects. 
         # 5x4 inches, 100 dots-per-inch
         #
-        self.dpi = 100
-        self.fig = Figure((8.0, 5.0), dpi=self.dpi)
+        self.dpi = 75
+        self.fig = Figure((24.0, 15.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
         
@@ -200,15 +184,15 @@ class AppForm(QMainWindow):
         self.draw_button = QPushButton("&Draw")
         self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
 
-        self.save_button = QPushButton("&save")
-        self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
-                
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
+
+        self.datapoints_cb = QCheckBox("Show &DataPoints")
+        self.datapoints_cb.setChecked(False)
+        self.connect(self.datapoints_cb, SIGNAL('stateChanged(int)'), self.on_draw)
         
         self.param_dropdown = QComboBox()
-
         self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
         
         #
@@ -217,7 +201,7 @@ class AppForm(QMainWindow):
         hbox = QHBoxLayout()
         
         for w in [  self.textbox, self.draw_button, self.grid_cb,
-                    self.param_dropdown, self.save_button]:
+                    self.param_dropdown, self.datapoints_cb]:
             hbox.addWidget(w)
             hbox.setAlignment(w, Qt.AlignVCenter)
         
@@ -235,7 +219,8 @@ class AppForm(QMainWindow):
         for k in self.vars_dic.keys():
             if k not in ['time','time2','lat','lon','depth']:
                 self.param_dropdown.addItem(k)
-            else:
+            
+            if k in ['lat','lon','depth']:
                 self.station_data[k] =str(self.ncdata[k][0])
 
 
