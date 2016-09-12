@@ -46,14 +46,17 @@ from calc.EPIC2Datetime import EPIC2Datetime
 
 
 class AppForm(QMainWindow):
-    def __init__(self, parent=None):
+
+    example_path = parent_dir+'/example_data/example_timeseries_data.nc'
+
+    def __init__(self, parent=None, active_file=example_path):
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('Timeseries Demo: PyQt with matplotlib')
 
         self.create_menu()
         self.create_main_frame()
 
-        self.textbox.setText(parent_dir+'/example_data/example_timeseries_data.nc')
+        self.textbox.setText(active_file)
         self.populate_dropdown()
         self.create_status_bar()
         self.on_draw()
@@ -96,21 +99,6 @@ class AppForm(QMainWindow):
 
     def on_draw(self):
         """ Redraws the figure
-        """
-        """
-        # Following logic associates an arbitrary name to an Epic keycode
-        if str(self.param_dropdown.currentText()) == 'Temperature':
-            var1,var2 = ['T_28','T2_35']
-        elif str(self.param_dropdown.currentText()) == 'Salinity':
-            var1,var2 = ['S_41', 'S_42']
-        elif str(self.param_dropdown.currentText()) == 'Oxygen':
-            var1,var2 = ['O_65','CTDOXY_4221']
-        elif str(self.param_dropdown.currentText()) == 'ECO-FLNT':
-            var1,var2 = ['F_903','Trb_980']
-        elif str(self.param_dropdown.currentText()) == 'PAR':
-            var1,var2 = ['PAR_905','']
-        else:
-            var1,var2 = ['T_28','T2_35'] 
         """
 
         var1 = str(self.param_dropdown.currentText())
@@ -216,6 +204,8 @@ class AppForm(QMainWindow):
     def populate_dropdown(self):
         self.load_netcdf()
         self.station_data = {}
+
+
         for k in self.vars_dic.keys():
             if k not in ['time','time2','lat','lon','depth']:
                 self.param_dropdown.addItem(k)
@@ -285,7 +275,12 @@ class AppForm(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    form = AppForm()
+    args = app.arguments()
+    if args[1]:
+        form = AppForm(active_file=args[1])
+    else:
+        form = AppForm()
+    app.setStyle("plastique")
     form.show()
     app.exec_()
 
