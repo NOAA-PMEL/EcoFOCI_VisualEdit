@@ -207,10 +207,10 @@ class AppForm(QMainWindow):
 
 
         for k in self.vars_dic.keys():
-            if k not in ['time','time2','lat','lon','depth']:
+            if k not in ['time','time2','lat','lon','depth','latitude','longitude']:
                 self.param_dropdown.addItem(k)
             
-            if k in ['lat','lon','depth']:
+            if k in ['lat','lon','depth','latitude','longitude']:
                 self.station_data[k] =str(self.ncdata[k][0])
 
 
