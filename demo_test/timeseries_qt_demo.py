@@ -276,9 +276,9 @@ class AppForm(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     args = app.arguments()
-    if args[1]:
+    try:
         form = AppForm(active_file=args[1])
-    else:
+    except:
         form = AppForm()
     app.setStyle("plastique")
     form.show()

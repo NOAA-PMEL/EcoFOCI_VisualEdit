@@ -46,14 +46,16 @@ from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
 
 
 class AppForm(QMainWindow):
-    def __init__(self, parent=None):
+    example_path = parent_dir+'/example_data/example_ctd_data.nc'
+
+    def __init__(self, parent=None, active_file=example_path):
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('CTD Demo: PyQt with matplotlib')
 
         self.create_menu()
         self.create_main_frame()
 
-        self.textbox.setText(parent_dir+'/example_data/example_ctd_data.nc')
+        self.textbox.setText(active_file)
         self.populate_dropdown()
         self.create_status_bar()
         self.inverted = False
@@ -319,7 +321,12 @@ class AppForm(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    form = AppForm()
+    args = app.arguments()
+    try:
+        form = AppForm(active_file=args[1])
+    except:
+        form = AppForm()
+    app.setStyle("plastique")
     form.show()
     app.exec_()
 
