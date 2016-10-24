@@ -130,7 +130,6 @@ class AppForm(QMainWindow):
         self.load_netcdf()
         try:
             xdata = self.ncdata[var1][0,:,0,0]
-            #xdata2 = self.ncdata[var2][0,:,0,0]
             y = self.ncdata['dep'][:]
 
             # clear the axes and redraw the plot anew
@@ -140,23 +139,9 @@ class AppForm(QMainWindow):
             
             self.axes.plot(
                 xdata,y,
-                #xdata2,y,
-                marker='*',
+                marker='o',
                 picker=True)            
-        except KeyError:
-            xdata = self.ncdata[var1][0,:,0,0]
-            y = self.ncdata['dep'][:]
-
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
-            self.axes.plot(
-                xdata,y,
-                marker='*',
-                picker=True)            
-        except IndexError:
+        except:
             xdata = self.ncdata[var1][:]
             y = self.ncdata['dep'][:]
 
@@ -167,7 +152,7 @@ class AppForm(QMainWindow):
             
             self.axes.plot(
                 xdata,y,
-                marker='*',
+                marker='o',
                 picker=True)
 
         self.fig.suptitle(self.station_data, fontsize=12)
@@ -176,6 +161,9 @@ class AppForm(QMainWindow):
             self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
             self.inverted = True
         self.canvas.draw()
+
+        #reload table to
+        self.load_table()
 
     def on_save(self):
         """
