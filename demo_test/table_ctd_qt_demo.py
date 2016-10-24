@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 
 ctd_table_qt_demo.py
@@ -39,11 +41,13 @@ class MyWindow(QWidget):
         self.load_netcdf()
         rawdata, header = self.dic2list()
 
-        print header
-
         tablemodel = MyTableModel(rawdata, header, self)
-        tableview = QTableView()
+        #tableview = QTableView()
         tableview.setModel(tablemodel)
+
+        #set view sizes
+        tableview.setMinimumSize(800,300)
+        tableview.resizeColumnsToContents()
 
         layout = QVBoxLayout(self)
         layout.addWidget(tableview)
@@ -59,6 +63,14 @@ class MyWindow(QWidget):
         return self.ncdata
 
     def dic2list(self, test=False):
+        """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
+                columns are per variable and rows are per depth
+
+            Hard coded in this routine is the name of the dimensions expected (lat,lon,dep,time,time2)
+            
+            Todo: remove variable naming dependency
+
+        """
         if test:
             tabledata = [[1234567890,2,3,4,5],
                          [6,7,8,9,10],
@@ -76,7 +88,7 @@ class MyWindow(QWidget):
         return trans_tabledata, header
 
 
-# creattion of the model
+# creattion of the table model
 class MyTableModel(QAbstractTableModel):
     def __init__(self, datain, headerdata, parent = None, *args):
         QAbstractTableModel.__init__(self, parent, *args)
