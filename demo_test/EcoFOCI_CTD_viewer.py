@@ -67,6 +67,7 @@ class AppForm(QMainWindow):
 
         self.textbox.setText(active_file)
         self.populate_dropdown()
+        self.load_netcdf()
         self.create_status_bar()
         self.inverted = False
         self.load_table()
@@ -83,16 +84,15 @@ class AppForm(QMainWindow):
             self.statusBar().showMessage('Saved to %s' % path, 2000)
     
     def on_about(self):
-        msg = """ A demo of using PyQt with matplotlib:
+        msg = """ EcoFOCI CTD Viewer and {soon .... Editor}:
         
-         * Use the matplotlib navigation bar
-         * Add values to the text box and press Enter (or click "Draw")
+         * Use the matplotlib navigation bar to explore the plot
+         * Change the file explored (Reload)
          * Show or hide the grid
-         * Drag the slider to modify the width of the bars
+         * Allow edits or not of table data
          * Save the plot to a file using the File menu
-         * Click on a bar to receive an informative message
         """
-        QMessageBox.about(self, "About the demo", msg.strip())
+        QMessageBox.about(self, "About the program", msg.strip())
     
     def on_pick(self, event):
         # The event received here is of the type
@@ -108,26 +108,18 @@ class AppForm(QMainWindow):
         
         QMessageBox.information(self, "Click!", msg)
 
+    def on_reload(self):
+        """
+            Reloads (or loads) selcted data file
+        """
+        self.load_netcdf()
+        self.on_draw()
+
     def on_draw(self):
-        """ Redraws the figure
-        """
-        """
-        # Following logic associates an arbitrary name to an Epic keycode
-        if str(self.param_dropdown.currentText()) == 'Temperature':
-            var1,var2 = ['T_28','T2_35']
-        elif str(self.param_dropdown.currentText()) == 'Salinity':
-            var1,var2 = ['S_41', 'S_42']
-        elif str(self.param_dropdown.currentText()) == 'Oxygen':
-            var1,var2 = ['O_65','CTDOXY_4221']
-        elif str(self.param_dropdown.currentText()) == 'ECO-FLNT':
-            var1,var2 = ['F_903','Trb_980']
-        elif str(self.param_dropdown.currentText()) == 'PAR':
-            var1,var2 = ['PAR_905','']
-        else:
-            var1,var2 = ['T_28','T2_35'] 
+        """ Draws/Redrwas the figure
+
         """
         var1 = str(self.param_dropdown.currentText())
-        self.load_netcdf()
         try:
             xdata = self.ncdata[var1][0,:,0,0]
             y = self.ncdata['dep'][:]
@@ -163,7 +155,11 @@ class AppForm(QMainWindow):
         self.canvas.draw()
 
         #reload table to
-        self.load_table()
+        if self.update_table_cb.isChecked():
+            self.load_table()
+            self.highlight_table_column()
+        else:
+            self.highlight_table_column()
 
     def on_save(self):
         """
@@ -207,13 +203,20 @@ class AppForm(QMainWindow):
         self.draw_button = QPushButton("&Draw")
         self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
 
+        self.reload_button = QPushButton("&Reload")
+        self.connect(self.reload_button, SIGNAL('clicked()'), self.on_reload)
+
         self.save_button = QPushButton("&save")
         self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
                 
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
-        
+
+        self.update_table_cb = QCheckBox("Update Table")
+        self.update_table_cb.setChecked(False)
+        self.connect(self.update_table_cb, SIGNAL('stateChanged(int)'), self.on_draw)
+                
         self.param_dropdown = QComboBox()
 
         self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
@@ -225,16 +228,22 @@ class AppForm(QMainWindow):
         # 
         mhbox = QHBoxLayout()
         
-        for w in [  self.textbox, self.draw_button, self.grid_cb,
-                    self.param_dropdown, self.save_button]:
+        for w in [  self.textbox, self.reload_button, self.draw_button]:
             mhbox.addWidget(w)
             mhbox.setAlignment(w, Qt.AlignVCenter)
 
+        mhbox2 = QHBoxLayout()
+
+        for w2 in [ self.grid_cb, self.update_table_cb,
+                    self.param_dropdown, self.save_button]:
+            mhbox2.addWidget(w2)
+            mhbox2.setAlignment(w2, Qt.AlignVCenter)
 
         lv_box = QVBoxLayout()
         lv_box.addWidget(self.canvas)
         lv_box.addWidget(self.mpl_toolbar)
         lv_box.addLayout(mhbox)
+        lv_box.addLayout(mhbox2)
 
         h_box = QHBoxLayout()
         h_box.addLayout(lv_box)
@@ -251,16 +260,6 @@ class AppForm(QMainWindow):
                 self.param_dropdown.addItem(k)
             else:
                 self.station_data[k] =str(self.ncdata[k][0])
-
-        """
-        #Use following code if hardwired variable names are desired.  This just sets up
-        # the options in the dropdown menu and is useful for multiple plots per screen
-        self.param_dropdown.addItem("Temperature")
-        self.param_dropdown.addItem("Salinity")
-        self.param_dropdown.addItem("Oxygen")
-        self.param_dropdown.addItem("ECO-FLNT")
-        self.param_dropdown.addItem("PAR")
-        """
 
     def create_status_bar(self):
         self.status_text = QLabel(json.dumps(self.station_data))
@@ -310,16 +309,20 @@ class AppForm(QMainWindow):
         return action
 
     def load_table(self):
-        self.load_netcdf()
-        rawdata, header = self.dic2list()
+        
+        self.table_rawdata, self.table_header = self.dic2list()
 
-        tablemodel = MyTableModel(rawdata, header, self)
+        tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
 
         self.tableview.setModel(tablemodel)
 
         #set view sizes
-        self.tableview.setMinimumSize(960,568)
+        self.tableview.setMinimumSize(720,568)
         self.tableview.resizeColumnsToContents()
+
+    def highlight_table_column(self):
+        #higlight column with chosen variable plotted
+        self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
 
     def dic2list(self, test=False):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
@@ -363,7 +366,7 @@ class AppForm(QMainWindow):
         ncinstance.add_data(self.vars_dic,data_dic=self.ncdata)
         ncinstance.close()
 
-# creattion of the table model
+# creation of the table model
 class MyTableModel(QAbstractTableModel):
     def __init__(self, datain, headerdata, parent = None, *args):
         QAbstractTableModel.__init__(self, parent, *args)
