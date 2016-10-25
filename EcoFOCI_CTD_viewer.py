@@ -144,9 +144,9 @@ class AppForm(QMainWindow):
             var1 = str(self.param_dropdown.currentText())
             try:
                 #make missing data unplotted
-                ind = self.ncdata[var1][0,:,0,0] >1e34
-                self.ncdata[var1][0,ind,0,0] = np.nan
-                xdata = self.ncdata[var1][0,:,0,0]
+                xdata = np.copy(self.ncdata[var1][0,:,0,0])
+                ind = xdata >1e34
+                xdata[ind] = np.nan
                 y = self.ncdata['dep'][:]
 
                 # clear the axes and redraw the plot anew
@@ -160,9 +160,9 @@ class AppForm(QMainWindow):
                     picker=True)            
             except:
                 #make missing data unplotted
-                ind = self.ncdata[var1][:] >1e34
-                self.ncdata[var1][ind] = np.nan
-                xdata = self.ncdata[var1][:]
+                xdata = np.copy(self.ncdata[var1][:])
+                ind = xdata >1e34
+                xdata[ind] = np.nan
                 y = self.ncdata['dep'][:]
 
                 # clear the axes and redraw the plot anew

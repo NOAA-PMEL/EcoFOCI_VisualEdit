@@ -108,36 +108,66 @@ class AppForm(QMainWindow):
         """ Redraws the figure
         """
 
-        var1 = str(self.param_dropdown.currentText())
+        if self.update_table_cb.isChecked():
+            var1 = str(self.param_dropdown.currentText())
 
-        ind = self.ncdata[var1][:,0,0,0] >1e34
-        self.ncdata[var1][ind,0,0,0] = np.nan
+            updated_data = self.table2dic()
 
-        tdata = self.ncdata['time'][:]
-        y = self.ncdata[var1][:,0,0,0]
+            tdata = self.ncdata['time'][:]
+            ydata = np.array(updated_data[var1],dtype=float)
+            #make missing data unplotted
+            ydata[ind = ydata > 1e34] = np.nan
 
-        # clear the axes and redraw the plot anew
-        #
-        self.axes.clear()        
-        self.axes.grid(self.grid_cb.isChecked())
-        
-        if self.datapoints_cb.isChecked():
-            self.axes.plot(
-                tdata,y,
-                marker='*',
-                picker=True)
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            if self.datapoints_cb.isChecked():
+                self.axes.plot(
+                    tdata,ydata,
+                    marker='*',
+                    picker=True)
+            else:
+                self.axes.plot(
+                    tdata,ydata,
+                    picker=True)      
         else:
-            self.axes.plot(
-                tdata,y,
-                picker=True)                    
+            var1 = str(self.param_dropdown.currentText())
 
+            ydata = np.copy(self.ncdata[var1][:,0,0,0])
+
+            ydata[ydata >1e34] = np.nan
+            tdata = self.ncdata['time'][:]
+
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            if self.datapoints_cb.isChecked():
+                self.axes.plot(
+                    tdata,ydata,
+                    marker='*',
+                    picker=True)
+            else:
+                self.axes.plot(
+                    tdata,ydata,
+                    picker=True)      
+
+        #reload table data
+        if self.update_table_cb.isChecked():
+            self.highlight_table_row()
+        else:
+            self.load_table()
+            self.highlight_table_row()
 
         self.fig.suptitle(self.station_data, fontsize=12)
         self.canvas.draw()
 
-    def highlight_table_column(self):
+    def highlight_table_row(self):
         #higlight column with chosen variable plotted
-        self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
+        self.tableview.selectRow(self.table_header.index(self.param_dropdown.currentText()))
 
 
     def on_save(self):
@@ -343,12 +373,12 @@ class AppForm(QMainWindow):
         updated_data = {}
         
 
-        for col in range(self.tablemodel.columnCount(parent=QtCore.QModelIndex())):
+        for row in range(self.tablemodel.rowCount(parent=QtCore.QModelIndex())):
             temp = []
-            for row in range(self.tablemodel.rowCount(parent=QtCore.QModelIndex())):
+            for col in range(self.tablemodel.columnCount(parent=QtCore.QModelIndex())):
                 value = self.tablemodel.index( row, col, QModelIndex() ).data( Qt.DisplayRole ).toString()
                 temp = temp + [str(value)]
-            updated_data[self.table_header[col]] = temp
+            updated_data[self.table_header[row]] = temp
 
         return updated_data
 
@@ -384,11 +414,10 @@ class AppForm(QMainWindow):
 
 # creation of the table model
 class MyTableModel(QAbstractTableModel):
-    def __init__(self, datain, columnNames, rowNames, parent = None, *args):
+    def __init__(self, datain, headerdata, parent = None, *args):
         QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = datain
-        self.columnNames = columnNames
-        self.rowNames = rowNames
+        self.headerdata = headerdata
 
     def rowCount(self, parent):
         return len(self.arraydata)
@@ -407,14 +436,9 @@ class MyTableModel(QAbstractTableModel):
         self.arraydata[index.row()][index.column()] = value
         return True
 
-    def rowNames(self, col, orientation, role):
+    def headerdata(self, col, orientation, role):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return QVariant(self.columnNames[col])
-        return QVariant()
-
-    def columnNames(self, col, orientation, role):
-        if orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return QVariant(self.rowNames[col])
+            return QVariant(self.headerdata[col])
         return QVariant()
 
     def flags(self, index):
