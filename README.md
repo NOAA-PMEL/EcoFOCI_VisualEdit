@@ -5,6 +5,7 @@ Developed for PMEL EcoFOCI Program
 
 <pre>
 .
+├── EcoFOCI_CTD_viewer.py
 ├── README.md
 ├── __init__.py
 ├── calc
@@ -13,7 +14,6 @@ Developed for PMEL EcoFOCI Program
 │   ├── __init__.py
 │   └── __init__.pyc
 ├── demo_test
-│   ├── EcoFOCI_CTD_viewer.py
 │   ├── ctd_qt_demo.py
 │   ├── mpl_qt_demo.py
 │   ├── table_ctd_qt_demo.py
@@ -39,4 +39,5 @@ demo_test
 + ctd_qt_demo.py --- ctd profile plots
 + timeseries_qt_demo.py --- timeseries plots
 + mpl_qt_demo.py --- original code for basis   
-
++ table_ctd_qt_demo.py --- ctd table demo (using data from netcdf)
++ table_qt_demo.py --- basic table view for qt
