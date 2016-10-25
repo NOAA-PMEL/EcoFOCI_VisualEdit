@@ -70,34 +70,34 @@ class NetCDF_Create_CTD(object):
             self.rootgrpID = rootgrpID
             return ( rootgrpID )
         
-    def sbeglobal_atts(self, raw_data_file='', Water_Mass='', Water_Depth=9999, 
-                       Prog_Cmnt='', Experiment='', Edit_Cmnt='', Station_Name='', 
-                       SerialNumber='',Instrument_Type='', History=''):
-        """
-        Assumptions
-        -----------
-        
-        Format of DataFrame.name = 'dy1309l1_ctd001'
-        
-        seabird related global attributes found in DataFrame.header list
-        
-        """
-        
-        self.rootgrpID.CREATION_DATE = datetime.datetime.utcnow().strftime("%B %d, %Y %H:%M UTC")
-        self.rootgrpID.COMPOSITE = 1
-        self.rootgrpID.INST_TYPE = Instrument_Type
-        self.rootgrpID.DATA_CMNT = raw_data_file
+    def sbeglobal_atts(self, CREATION_DATE='', DATA_CMNT='', WATER_MASS='', WATER_DEPTH=9999, 
+                       PROG_CMNT01='', SFC_EXTEND='', EDIT_CMNT01='', STATION_NAME='',  CRUISE='',
+                       SerialNumber='',INST_TYPE='', COORD_SYSTEM='', DATA_TYPE='', CAST='',
+                       BAROMETER='', WIND_DIR='', WIND_SPEED='', AIR_TEMP='',  History=''):
+
+        self.rootgrpID.CREATION_DATE = CREATION_DATE
         self.rootgrpID.EPIC_FILE_GENERATOR = __file__.split('/')[-1] + ' ' + __version__ 
-        self.rootgrpID.PROG_CMNT01 = Prog_Cmnt
-        self.rootgrpID.EDIT_CMNT01 = Edit_Cmnt
-        self.rootgrpID.WATER_DEPTH = Water_Depth
-        self.rootgrpID.MOORING = Station_Name
-        self.rootgrpID.WATER_MASS = Water_Mass
-        self.rootgrpID.EXPERIMENT = Experiment
-        self.rootgrpID.PROJECT = Experiment
-        self.rootgrpID.SERIAL_NUMBER = SerialNumber
+        self.rootgrpID.INST_TYPE = INST_TYPE
+        self.rootgrpID.DATA_CMNT = DATA_CMNT
+        self.rootgrpID.CAST = CAST
+        self.rootgrpID.CRUISE = CRUISE
+        self.rootgrpID.INST_TYPE = INST_TYPE
+        self.rootgrpID.DATA_TYPE = DATA_TYPE
+        self.rootgrpID.DATA_CMNT = DATA_CMNT
+        self.rootgrpID.COORD_SYSTEM = COORD_SYSTEM
+        self.rootgrpID.WATER_MASS = WATER_MASS
+        self.rootgrpID.BAROMETER = BAROMETER
+        self.rootgrpID.WIND_DIR = WIND_DIR
+        self.rootgrpID.WIND_SPEED = WIND_SPEED
+        self.rootgrpID.AIR_TEMP = AIR_TEMP
+        self.rootgrpID.WATER_DEPTH = WATER_DEPTH
+        self.rootgrpID.STATION_NAME = STATION_NAME
+        self.rootgrpID.EPIC_FILE_GENERATOR = 'ncprossessing.py V' + __version__ 
+        self.rootgrpID.PROG_CMNT01 = PROG_CMNT01
+        self.rootgrpID.EDIT_CMNT01 = EDIT_CMNT01
+        self.rootgrpID.SFC_EXTEND = SFC_EXTEND
         self.rootgrpID.History = History
-        
+
     def dimension_init(self, time_len=1, depth_len=1):
         """
         Assumes
@@ -109,7 +109,7 @@ class NetCDF_Create_CTD(object):
         User defined dimensions
         """
 
-        self.dim_vars = ['time', 'depth', 'lat', 'lon']
+        self.dim_vars = ['time', 'dep', 'lat', 'lon']
         
         self.rootgrpID.createDimension( self.dim_vars[0], 1 ) #time
         self.rootgrpID.createDimension( self.dim_vars[1], depth_len ) #depth
@@ -141,7 +141,7 @@ class NetCDF_Create_CTD(object):
             rec_var_FORTRAN.append( EPIC_VARS_dict[evar]['fortran'] )
             rec_var_epic.append( EPIC_VARS_dict[evar]['EPIC_KEY'] )
         
-        rec_vars = ['time','time2','depth','lat','lon'] + rec_vars
+        rec_vars = ['time','time2','dep','lat','lon'] + rec_vars
 
         rec_var_name = ['', '', '', '', ''] + rec_var_name
         rec_var_longname = ['', '', '', '', ''] + rec_var_longname
@@ -211,7 +211,7 @@ class NetCDF_Create_CTD(object):
         
     def add_history(self, new_history):
         """Adds timestamp (UTC time) and history to existing information"""
-        self.History = self.History + '\n' + datetime.datetime.utcnow().strftime("%B %d, %Y %H:%M UTC")\
+        self.rootgrpID.History = self.rootgrpID.History + '\n' + datetime.datetime.utcnow().strftime("%B %d, %Y %H:%M UTC")\
                     + ' ' + new_history
                     
     def close(self):

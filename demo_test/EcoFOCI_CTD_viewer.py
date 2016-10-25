@@ -47,6 +47,7 @@ parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(1, parent_dir)
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
+from io_utils import ConfigParserLocal
 
 __author__   = 'Shaun Bell'
 __email__    = 'shaun.bell@noaa.gov'
@@ -108,149 +109,114 @@ class AppForm(QMainWindow):
         
         QMessageBox.information(self, "Click!", msg)
 
-    def on_reload(self):
-        """
-            Reloads (or loads) selcted data file
-        """
-        self.load_netcdf()
-        self.on_draw()
+    """-------------------------------------
+    matplotlib graphics window - plot data 
+    ----------------------------------------"""
 
     def on_draw(self):
-        """ Draws/Redrwas the figure
+        """ 
+        Draws/Redrwas the figure
 
         """
-        var1 = str(self.param_dropdown.currentText())
-        try:
-            xdata = self.ncdata[var1][0,:,0,0]
-            y = self.ncdata['dep'][:]
+        #choose data source to plot from, table or file
+        if self.update_table_cb.isChecked():
+            var1 = str(self.param_dropdown.currentText())
+            updated_data = self.table2dic()
+            try:
+                xdata = np.array(updated_data[var1])
+                y = np.array(updated_data['dep'])
 
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
-            self.axes.plot(
-                xdata,y,
-                marker='o',
-                picker=True)            
-        except:
-            xdata = self.ncdata[var1][:]
-            y = self.ncdata['dep'][:]
+                # clear the axes and redraw the plot anew
+                #
+                self.axes.clear()        
+                self.axes.grid(self.grid_cb.isChecked())
+                
+                self.axes.plot(
+                    xdata,y,
+                    marker='o',
+                    picker=True)            
+            except:
+                xdata = np.array(updated_data[var1])
+                y = np.array(updated_data['dep'])
 
-            # clear the axes and redraw the plot anew
-            #
-            self.axes.clear()        
-            self.axes.grid(self.grid_cb.isChecked())
-            
-            self.axes.plot(
-                xdata,y,
-                marker='o',
-                picker=True)
+                # clear the axes and redraw the plot anew
+                #
+                self.axes.clear()        
+                self.axes.grid(self.grid_cb.isChecked())
+                
+                self.axes.plot(
+                    xdata,y,
+                    marker='o',
+                    picker=True)
 
-        self.fig.suptitle(self.station_data, fontsize=12)
+            self.fig.suptitle(self.station_data, fontsize=12)
+        else:
+            var1 = str(self.param_dropdown.currentText())
+            try:
+                xdata = self.ncdata[var1][0,:,0,0]
+                y = self.ncdata['dep'][:]
+
+                # clear the axes and redraw the plot anew
+                #
+                self.axes.clear()        
+                self.axes.grid(self.grid_cb.isChecked())
+                
+                self.axes.plot(
+                    xdata,y,
+                    marker='o',
+                    picker=True)            
+            except:
+                xdata = self.ncdata[var1][:]
+                y = self.ncdata['dep'][:]
+
+                # clear the axes and redraw the plot anew
+                #
+                self.axes.clear()        
+                self.axes.grid(self.grid_cb.isChecked())
+                
+                self.axes.plot(
+                    xdata,y,
+                    marker='o',
+                    picker=True)
+
+            self.fig.suptitle(self.station_data, fontsize=12)
 
         if not self.inverted:
             self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
             self.inverted = True
         self.canvas.draw()
 
-        #reload table to
+        #reload table data
         if self.update_table_cb.isChecked():
-            self.load_table()
             self.highlight_table_column()
         else:
+            self.load_table()
             self.highlight_table_column()
+
+    def highlight_table_column(self):
+        #higlight column with chosen variable plotted
+        self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
+
+
+    """-------------------------------------
+    Buttons and Actions
+    ----------------------------------------"""
 
     def on_save(self):
         """
         save to same location with .ed.nc ending
         """
+        updated_data = self.table2dic()
         file_out = unicode(self.textbox.text()).replace('.nc','.ed.nc')
-        self.save_netcdf(file_out)
+        self.save_netcdf(file_out, data=updated_data)
     
-    def create_main_frame(self):
-        self.main_frame = QWidget()
-        
-        # Create the mpl Figure and FigCanvas objects. 
-        # 5x8 inches, 100 dots-per-inch
-        #
-        self.dpi = 100
-        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
-        self.canvas = FigureCanvas(self.fig)
-        self.canvas.setParent(self.main_frame)
-        
-        # Since we have only one plot, we can use add_axes 
-        # instead of add_subplot, but then the subplot
-        # configuration tool in the navigation toolbar wouldn't
-        # work.
-        #
-        self.axes = self.fig.add_subplot(111)
-        
-        # Bind the 'pick' event for clicking on one of the bars
-        #
-        self.canvas.mpl_connect('pick_event', self.on_pick)
-        
-        # Create the navigation toolbar, tied to the canvas
-        #
-        self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
-        
-        # Other GUI controls
-        # 
-        self.textbox = QLineEdit()
-        self.textbox.setMinimumWidth(200)
-        self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_draw)
-        
-        self.draw_button = QPushButton("&Draw")
-        self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
 
-        self.reload_button = QPushButton("&Reload")
-        self.connect(self.reload_button, SIGNAL('clicked()'), self.on_reload)
-
-        self.save_button = QPushButton("&save")
-        self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
-                
-        self.grid_cb = QCheckBox("Show &Grid")
-        self.grid_cb.setChecked(False)
-        self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
-
-        self.update_table_cb = QCheckBox("Update Table")
-        self.update_table_cb.setChecked(False)
-        self.connect(self.update_table_cb, SIGNAL('stateChanged(int)'), self.on_draw)
-                
-        self.param_dropdown = QComboBox()
-
-        self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
-        
-        self.tableview = QTableView()
-
-        #
-        # Layout with box sizers
-        # 
-        mhbox = QHBoxLayout()
-        
-        for w in [  self.textbox, self.reload_button, self.draw_button]:
-            mhbox.addWidget(w)
-            mhbox.setAlignment(w, Qt.AlignVCenter)
-
-        mhbox2 = QHBoxLayout()
-
-        for w2 in [ self.grid_cb, self.update_table_cb,
-                    self.param_dropdown, self.save_button]:
-            mhbox2.addWidget(w2)
-            mhbox2.setAlignment(w2, Qt.AlignVCenter)
-
-        lv_box = QVBoxLayout()
-        lv_box.addWidget(self.canvas)
-        lv_box.addWidget(self.mpl_toolbar)
-        lv_box.addLayout(mhbox)
-        lv_box.addLayout(mhbox2)
-
-        h_box = QHBoxLayout()
-        h_box.addLayout(lv_box)
-        h_box.addWidget(self.tableview)
-       
-        self.main_frame.setLayout(h_box)
-        self.setCentralWidget(self.main_frame)
+    def on_reload(self):
+        """
+            Reloads (or loads) selcted data file
+        """
+        self.load_netcdf()
+        self.on_draw()
 
     def populate_dropdown(self):
         self.load_netcdf()
@@ -307,22 +273,98 @@ class AppForm(QMainWindow):
         if checkable:
             action.setCheckable(True)
         return action
-
-    def load_table(self):
         
-        self.table_rawdata, self.table_header = self.dic2list()
+    """-------------------------------------
+    Main Frame
+    ----------------------------------------"""
 
-        tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
+    def create_main_frame(self):
+        self.main_frame = QWidget()
+        
+        # Create the mpl Figure and FigCanvas objects. 
+        # 5x8 inches, 100 dots-per-inch
+        #
+        self.dpi = 100
+        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
+        self.canvas = FigureCanvas(self.fig)
+        self.canvas.setParent(self.main_frame)
+        
+        # Since we have only one plot, we can use add_axes 
+        # instead of add_subplot, but then the subplot
+        # configuration tool in the navigation toolbar wouldn't
+        # work.
+        #
+        self.axes = self.fig.add_subplot(111)
+        
+        # Bind the 'pick' event for clicking on one of the bars
+        #
+        self.canvas.mpl_connect('pick_event', self.on_pick)
+        
+        # Create the navigation toolbar, tied to the canvas
+        #
+        self.mpl_toolbar = NavigationToolbar(self.canvas, self.main_frame)
+        
+        # Other GUI controls
+        # 
+        self.textbox = QLineEdit()
+        self.textbox.setMinimumWidth(200)
+        self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_draw)
+        
+        self.draw_button = QPushButton("&Draw")
+        self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
 
-        self.tableview.setModel(tablemodel)
+        self.reload_button = QPushButton("&Reload")
+        self.connect(self.reload_button, SIGNAL('clicked()'), self.on_reload)
 
-        #set view sizes
-        self.tableview.setMinimumSize(720,568)
-        self.tableview.resizeColumnsToContents()
+        self.save_button = QPushButton("&save")
+        self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
+                
+        self.grid_cb = QCheckBox("Show &Grid")
+        self.grid_cb.setChecked(False)
+        self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
-    def highlight_table_column(self):
-        #higlight column with chosen variable plotted
-        self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
+        self.update_table_cb = QCheckBox("Use Updated Table")
+        self.update_table_cb.setChecked(False)
+        self.connect(self.update_table_cb, SIGNAL('stateChanged(int)'), self.on_draw)
+                
+        self.param_dropdown = QComboBox()
+
+        self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
+        
+        self.tableview = QTableView()
+
+        #
+        # Layout with box sizers
+        # 
+        mhbox = QHBoxLayout()
+        
+        for w in [  self.textbox, self.reload_button, self.draw_button]:
+            mhbox.addWidget(w)
+            mhbox.setAlignment(w, Qt.AlignVCenter)
+
+        mhbox2 = QHBoxLayout()
+
+        for w2 in [ self.grid_cb, self.update_table_cb,
+                    self.param_dropdown, self.save_button]:
+            mhbox2.addWidget(w2)
+            mhbox2.setAlignment(w2, Qt.AlignVCenter)
+
+        lv_box = QVBoxLayout()
+        lv_box.addWidget(self.canvas)
+        lv_box.addWidget(self.mpl_toolbar)
+        lv_box.addLayout(mhbox)
+        lv_box.addLayout(mhbox2)
+
+        h_box = QHBoxLayout()
+        h_box.addLayout(lv_box)
+        h_box.addWidget(self.tableview)
+       
+        self.main_frame.setLayout(h_box)
+        self.setCentralWidget(self.main_frame)
+
+    """-------------------------------------
+    Convert Data Format
+    ----------------------------------------"""
 
     def dic2list(self, test=False):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
@@ -350,21 +392,70 @@ class AppForm(QMainWindow):
 
         return trans_tabledata, header
 
+    def table2dic(self):
+        """
+        cycle through each column
+        """
+        updated_data = {}
+        
+
+        for col in range(self.tablemodel.columnCount(parent=QtCore.QModelIndex())):
+            temp = []
+            for row in range(self.tablemodel.rowCount(parent=QtCore.QModelIndex())):
+                value = self.tablemodel.index( row, col, QModelIndex() ).data( Qt.DisplayRole ).toString()
+                temp = temp + [str(value)]
+            updated_data[self.table_header[col]] = temp
+
+        return updated_data
+
+    """-------------------------------------
+    Load and Save Data
+    ----------------------------------------"""
+
+    def load_table(self):
+        
+        self.table_rawdata, self.table_header = self.dic2list()
+
+        self.tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
+
+        self.tableview.setModel(self.tablemodel)
+
+        #set view sizes
+        self.tableview.setMinimumSize(720,568)
+        self.tableview.resizeColumnsToContents()
+
     def load_netcdf( self, file=parent_dir+'/example_data/example_ctd_data.nc'):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
+        self.glob_atts = df.get_global_atts()
         self.vars_dic = df.get_vars()
         self.ncdata = df.ncreadfile_dic()
         df.close()
 
-    def save_netcdf( self, file):
+    def save_netcdf( self, file, **kwargs):
+        if 'data' in kwargs.keys():
+            data=kwargs['data']
+        else:
+            data = self.ncdata
+
+        #read in basic epic key parameters
+        epic_vars = ConfigParserLocal.get_config(parent_dir+'/config/ctd_epickeys.json')
+
         ncinstance = NetCDF_Create_CTD(savefile=file)
         ncinstance.file_create()
-        ncinstance.dimension_init(time_len=len(self.ncdata['time']))
-        ncinstance.variable_init(self.vars_dic)
-        ncinstance.add_coord_data(depth=self.ncdata['depth'], latitude=self.ncdata['lat'], 
-                longitude=self.ncdata['lon'], time1=self.ncdata['time'], time2=self.ncdata['time1'],)
-        ncinstance.add_data(self.vars_dic,data_dic=self.ncdata)
+        ncinstance.sbeglobal_atts(**self.glob_atts)
+        ncinstance.dimension_init(depth_len=len(self.ncdata['dep']))
+        ncinstance.variable_init(epic_vars)
+        ncinstance.add_coord_data(depth=self.ncdata['dep'], latitude=self.ncdata['lat'], 
+                longitude=self.ncdata['lon'], time1=self.ncdata['time'], time2=self.ncdata['time2'],)
+        if 'data' in kwargs.keys():
+            ncinstance.add_data(epic_vars,data_dic=data)
+        else:
+            ncinstance.add_data(epic_vars,data_dic=self.ncdata)
+        #ncinstance.add_history('Profile edited and QC\'d')
+
         ncinstance.close()
+
+"""-------------------------------------Table Model----------------------------------------------"""
 
 # creation of the table model
 class MyTableModel(QAbstractTableModel):
@@ -398,7 +489,7 @@ class MyTableModel(QAbstractTableModel):
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
-
+"""-------------------------------------Main Loop----------------------------------------------"""
 def main():
     app = QApplication(sys.argv)
     args = app.arguments()
