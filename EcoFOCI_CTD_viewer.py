@@ -42,12 +42,10 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 
 #user stack
-# Relative User Stack
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.sys.path.insert(1, parent_dir)
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
 from io_utils import ConfigParserLocal
+
 
 __author__   = 'Shaun Bell'
 __email__    = 'shaun.bell@noaa.gov'
@@ -57,6 +55,7 @@ __version__  = "0.1.0"
 __status__   = "Development"
 
 class AppForm(QMainWindow):
+    parent_dir = os.path.dirname(os.path.abspath(__file__))
     example_path = parent_dir+'/example_data/example_ctd_data.nc'
 
     def __init__(self, parent=None, active_file=example_path):
