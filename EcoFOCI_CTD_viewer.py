@@ -121,37 +121,31 @@ class AppForm(QMainWindow):
         if self.update_table_cb.isChecked():
             var1 = str(self.param_dropdown.currentText())
             updated_data = self.table2dic()
-            try:
-                xdata = np.array(updated_data[var1])
-                y = np.array(updated_data['dep'])
 
-                # clear the axes and redraw the plot anew
-                #
-                self.axes.clear()        
-                self.axes.grid(self.grid_cb.isChecked())
-                
-                self.axes.plot(
-                    xdata,y,
-                    marker='o',
-                    picker=True)            
-            except:
-                xdata = np.array(updated_data[var1])
-                y = np.array(updated_data['dep'])
+            xdata = np.array(updated_data[var1],dtype=float)
+            y = np.array(updated_data['dep'],dtype=float)
+            #make missing data unplotted
+            ind = xdata > 1e34
+            xdata[ind] = np.nan
+            # clear the axes and redraw the plot anew
+            #
+            self.axes.clear()        
+            self.axes.grid(self.grid_cb.isChecked())
+            
+            self.axes.plot(
+                xdata,y,
+                marker='o',
+                picker=True)            
 
-                # clear the axes and redraw the plot anew
-                #
-                self.axes.clear()        
-                self.axes.grid(self.grid_cb.isChecked())
-                
-                self.axes.plot(
-                    xdata,y,
-                    marker='o',
-                    picker=True)
 
             self.fig.suptitle(self.station_data, fontsize=12)
         else:
+
             var1 = str(self.param_dropdown.currentText())
             try:
+                #make missing data unplotted
+                ind = self.ncdata[var1][0,:,0,0] >1e34
+                self.ncdata[var1][0,ind,0,0] = np.nan
                 xdata = self.ncdata[var1][0,:,0,0]
                 y = self.ncdata['dep'][:]
 
@@ -165,6 +159,9 @@ class AppForm(QMainWindow):
                     marker='o',
                     picker=True)            
             except:
+                #make missing data unplotted
+                ind = self.ncdata[var1][:] >1e34
+                self.ncdata[var1][ind] = np.nan
                 xdata = self.ncdata[var1][:]
                 y = self.ncdata['dep'][:]
 

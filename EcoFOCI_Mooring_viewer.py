@@ -384,10 +384,11 @@ class AppForm(QMainWindow):
 
 # creation of the table model
 class MyTableModel(QAbstractTableModel):
-    def __init__(self, datain, headerdata, parent = None, *args):
+    def __init__(self, datain, columnNames, rowNames, parent = None, *args):
         QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = datain
-        self.headerdata = headerdata
+        self.columnNames = columnNames
+        self.rowNames = rowNames
 
     def rowCount(self, parent):
         return len(self.arraydata)
@@ -406,9 +407,14 @@ class MyTableModel(QAbstractTableModel):
         self.arraydata[index.row()][index.column()] = value
         return True
 
-    def headerData(self, col, orientation, role):
+    def rowNames(self, col, orientation, role):
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return QVariant(self.columnNames[col])
+        return QVariant()
+
+    def columnNames(self, col, orientation, role):
         if orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return QVariant(self.headerdata[col])
+            return QVariant(self.rowNames[col])
         return QVariant()
 
     def flags(self, index):
