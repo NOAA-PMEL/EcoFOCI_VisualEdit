@@ -116,7 +116,7 @@ class AppForm(QMainWindow):
             tdata = self.ncdata['time'][:]
             ydata = np.array(updated_data[var1],dtype=float)
             #make missing data unplotted
-            ydata[ind = ydata > 1e34] = np.nan
+            ydata[ydata > 1e34] = np.nan
 
             # clear the axes and redraw the plot anew
             #
@@ -395,7 +395,7 @@ class AppForm(QMainWindow):
         self.tableview.setModel(self.tablemodel)
 
         #set view sizes
-        self.tableview.setMinimumSize(720,568)
+        self.tableview.setMinimumSize(720,180)
         self.tableview.resizeColumnsToContents()
 
     def load_netcdf( self, file=parent_dir+'/example_data/example_timeseries_data.nc'):
@@ -418,6 +418,7 @@ class MyTableModel(QAbstractTableModel):
         QAbstractTableModel.__init__(self, parent, *args)
         self.arraydata = datain
         self.headerdata = headerdata
+        #self.colindex = range(self.columnCount(parent=QtCore.QModelIndex()))
 
     def rowCount(self, parent):
         return len(self.arraydata)
@@ -436,9 +437,11 @@ class MyTableModel(QAbstractTableModel):
         self.arraydata[index.row()][index.column()] = value
         return True
 
-    def headerdata(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+    def headerData(self, col, orientation, role):
+        if orientation == Qt.Vertical and role == Qt.DisplayRole:
             return QVariant(self.headerdata[col])
+        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+            return QVariant(col)        
         return QVariant()
 
     def flags(self, index):
