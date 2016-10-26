@@ -104,6 +104,26 @@ class AppForm(QMainWindow):
         
         QMessageBox.information(self, "Click!", msg)
 
+    def keyPressEvent(self, e):
+        if (e.modifiers() & QtCore.Qt.ControlModifier):
+            selected = self.tableview.selectedIndexes()
+
+            s = ''
+            if e.key() == QtCore.Qt.Key_C: #copy
+                row_stat = [ival.row()  for ival in selected]
+                col_stat = [ival.column() for ival in selected]
+                
+                # cycle through unique rows and columns for selection
+                # using list(set(list)) allows for selecting non-adjacent cells
+                for r in list(set(row_stat)):
+                    for c in list(set(col_stat)):
+                        try:
+                            s += str(self.tablemodel.index( r, c, QModelIndex() ).data( Qt.DisplayRole ).toString()) + "\t"
+                        except AttributeError:
+                            s += "\t"
+                    s = s[:-1] + "\n" #eliminate last '\t'
+                self.clip.setText(s)
+
     def on_draw(self):
         """ Redraws the figure
         """
