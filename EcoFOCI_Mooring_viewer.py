@@ -100,7 +100,9 @@ class AppForm(QMainWindow):
         xdata = event.artist.get_xdata()
         ydata = event.artist.get_ydata()
         ind = event.ind
-        msg = "You've clicked on a point with coords:\n {0}".format( tuple(zip(xdata[ind], ydata[ind])))
+        msg = "{x},{y} - (index {ind})".format( x=xdata[ind], 
+                                                y=ydata[ind], 
+                                                ind=ind)
         
         QMessageBox.information(self, "Click!", msg)
 
@@ -147,11 +149,11 @@ class AppForm(QMainWindow):
                 self.axes.plot(
                     tdata,ydata,
                     marker='*',
-                    picker=True)
+                    picker=5)
             else:
                 self.axes.plot(
                     tdata,ydata,
-                    picker=True)      
+                    picker=5)      
         else:
             var1 = str(self.param_dropdown.currentText())
 
@@ -169,11 +171,11 @@ class AppForm(QMainWindow):
                 self.axes.plot(
                     tdata,ydata,
                     marker='*',
-                    picker=True)
+                    picker=5)
             else:
                 self.axes.plot(
                     tdata,ydata,
-                    picker=True)      
+                    picker=5)      
 
         #reload table data
         if self.update_table_cb.isChecked():

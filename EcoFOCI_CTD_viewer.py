@@ -159,7 +159,7 @@ class AppForm(QMainWindow):
             self.axes.plot(
                 xdata,y,
                 marker='o',
-                picker=True)            
+                picker=5)            
 
 
             self.fig.suptitle(self.station_data, fontsize=12)
@@ -181,7 +181,7 @@ class AppForm(QMainWindow):
                 self.axes.plot(
                     xdata,y,
                     marker='o',
-                    picker=True)            
+                    picker=5)            
             except:
                 #make missing data unplotted
                 xdata = np.copy(self.ncdata[var1][:])
@@ -197,7 +197,7 @@ class AppForm(QMainWindow):
                 self.axes.plot(
                     xdata,y,
                     marker='o',
-                    picker=True)
+                    picker=5)
 
             self.fig.suptitle(self.station_data, fontsize=12)
 
