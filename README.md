@@ -6,6 +6,7 @@ Developed for PMEL EcoFOCI Program
 <pre>
 .
 ├── EcoFOCI_CTD_viewer.py
+├── EcoFOCI_Mooring_viewer.py
 ├── README.md
 ├── __init__.py
 ├── calc

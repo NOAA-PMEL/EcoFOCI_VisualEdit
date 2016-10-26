@@ -73,6 +73,8 @@ class AppForm(QMainWindow):
         self.load_table()
         self.on_draw()
 
+        self.clip = QtGui.QApplication.clipboard()
+
     def save_plot(self):
         file_choices = "PNG (*.png)|*.png"
         
@@ -82,7 +84,7 @@ class AppForm(QMainWindow):
         if path:
             self.canvas.print_figure(path, dpi=self.dpi)
             self.statusBar().showMessage('Saved to %s' % path, 2000)
-    
+
     def on_about(self):
         msg = """ EcoFOCI CTD Viewer and {soon .... Editor}:
         
@@ -107,6 +109,28 @@ class AppForm(QMainWindow):
         msg = "You've clicked on a point with coords:\n {0}".format( tuple(zip(xdata[ind], ydata[ind])))
         
         QMessageBox.information(self, "Click!", msg)
+
+
+    def keyPressEvent(self, e):
+        if (e.modifiers() & QtCore.Qt.ControlModifier):
+            selected = self.tableview.selectedIndexes()
+
+            s = ''
+            if e.key() == QtCore.Qt.Key_C: #copy
+                row_stat = [ival.row()  for ival in selected]
+                col_stat = [ival.column() for ival in selected]
+                
+                # cycle through unique rows and columns for selection
+                # using list(set(list)) allows for selecting non-adjacent cells
+                for r in list(set(row_stat)):
+                    for c in list(set(col_stat)):
+                        try:
+                            s += str(self.tablemodel.index( r, c, QModelIndex() ).data( Qt.DisplayRole ).toString()) + "\t"
+                        except AttributeError:
+                            s += "\t"
+                    s = s[:-1] + "\n" #eliminate last '\t'
+                self.clip.setText(s)
+                
 
     """-------------------------------------
     matplotlib graphics window - plot data 
@@ -233,9 +257,10 @@ class AppForm(QMainWindow):
         load_file_action = self.create_action("&Save plot",
             shortcut="Ctrl+S", slot=self.save_plot, 
             tip="Save the plot")
+
         quit_action = self.create_action("&Quit", slot=self.close, 
             shortcut="Ctrl+Q", tip="Close the application")
-        
+
         self.add_actions(self.file_menu, 
             (load_file_action, None, quit_action))
         
