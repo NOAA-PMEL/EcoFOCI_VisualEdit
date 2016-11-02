@@ -55,7 +55,6 @@ class AppForm(QMainWindow):
 
         self.create_menu()
         self.create_main_frame()
-
         self.textbox.setText(active_file)
         self.populate_dropdown()
         self.create_status_bar()

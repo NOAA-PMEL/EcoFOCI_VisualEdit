@@ -511,6 +511,7 @@ class MyTableModel(QAbstractTableModel):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
 """-------------------------------------Main Loop----------------------------------------------"""
+
 def main():
     app = QApplication(sys.argv)
     args = app.arguments()

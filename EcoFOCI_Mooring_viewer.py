@@ -191,7 +191,6 @@ class AppForm(QMainWindow):
         #higlight column with chosen variable plotted
         self.tableview.selectRow(self.table_header.index(self.param_dropdown.currentText()))
 
-
     def on_save(self):
         """
         save to same location with .ed.nc ending
@@ -206,7 +205,6 @@ class AppForm(QMainWindow):
             Reloads (or loads) selcted data file
         """
         self.load_netcdf()
-        self.load_table()
         self.on_draw()
     
 
@@ -220,8 +218,10 @@ class AppForm(QMainWindow):
                 self.param_dropdown.addItem(k)
             
             if k in ['lat','lon','depth','latitude','longitude']:
-                self.station_data[k] =str(self.ncdata[k][0])
-
+                try:
+                    self.station_data[k] =str(self.ncdata[k][0])
+                except:
+                    self.station_data[k] = 'Missing'
 
     def create_status_bar(self):
         self.status_text = QLabel(json.dumps(self.station_data))
@@ -278,10 +278,10 @@ class AppForm(QMainWindow):
         self.main_frame = QWidget()
         
         # Create the mpl Figure and FigCanvas objects. 
-        # 5x4 inches, 100 dots-per-inch
+        # 5x8 inches, 100 dots-per-inch
         #
-        self.dpi = 75
-        self.fig = Figure((24.0, 15.0), dpi=self.dpi)
+        self.dpi = 100
+        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
         
@@ -304,7 +304,7 @@ class AppForm(QMainWindow):
         # 
         self.textbox = QLineEdit()
         self.textbox.setMinimumWidth(200)
-        self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_draw)
+        self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_reload)
         
         self.draw_button = QPushButton("&Draw")
         self.connect(self.draw_button, SIGNAL('clicked()'), self.on_draw)
@@ -420,8 +420,7 @@ class AppForm(QMainWindow):
         #set view sizes
         self.tableview.setMinimumSize(720,180)
         self.tableview.resizeColumnsToContents()
-
-    def load_netcdf( self, file=parent_dir+'/example_data/example_timeseries_data.nc'):
+    def load_netcdf( self):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
         self.glob_atts = df.get_global_atts()
         self.vars_dic = df.get_vars()
@@ -462,10 +461,10 @@ class MyTableModel(QAbstractTableModel):
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return self.headerdata[col]
+            return QVariant(self.headerdata[col])
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return col       
-        return None
+            return QVariant(col)       
+        return QVariant()
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
