@@ -206,6 +206,7 @@ class AppForm(QMainWindow):
             Reloads (or loads) selcted data file
         """
         self.load_netcdf()
+        self.load_table()
         self.on_draw()
     
 
@@ -461,10 +462,10 @@ class MyTableModel(QAbstractTableModel):
 
     def headerData(self, col, orientation, role):
         if orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return QVariant(self.headerdata[col])
+            return self.headerdata[col]
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return QVariant(col)        
-        return QVariant()
+            return col       
+        return None
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
