@@ -14,6 +14,8 @@ Developed for PMEL EcoFOCI Program
 │   ├── EPIC2Datetime.pyc
 │   ├── __init__.py
 │   └── __init__.pyc
+├── config
+│   └── ctd_epickeys.json
 ├── demo_test
 │   ├── ctd_qt_demo.py
 │   ├── mpl_qt_demo.py
@@ -25,6 +27,8 @@ Developed for PMEL EcoFOCI Program
 │   ├── example_ctd_data.nc
 │   └── example_timeseries_data.nc
 └── io_utils
+    ├── ConfigParserLocal.py
+    ├── ConfigParserLocal.pyc
     ├── EcoFOCI_netCDF_read.py
     ├── EcoFOCI_netCDF_read.pyc
     ├── EcoFOCI_netCDF_write.py
@@ -36,6 +40,18 @@ Developed for PMEL EcoFOCI Program
 
 ## Available routines
 
+###main routines
+
+___CTD Editing Routines___
+
+`python EcoFOCI_CTD_viewer.py {full/path/to/netcdf}`
+
+___Timeseries Editing Routines___
+*** Still in development***
+
+`python EcoFOCI_Mooring_viewer.py {full/path/to/netcdf}`
+
+### demo or test routines
 demo_test
 + ctd_qt_demo.py --- ctd profile plots
 + timeseries_qt_demo.py --- timeseries plots
