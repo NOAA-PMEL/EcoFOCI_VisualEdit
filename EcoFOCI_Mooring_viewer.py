@@ -139,9 +139,10 @@ class AppForm(QMainWindow):
             ydata = np.array(updated_data[var1],dtype=float)
             #make missing data unplotted
             ydata[ydata > 1e34] = np.nan
-
+            if all(ydata):
+                ydata[0]=1
+                ydata[-1]=1
             # clear the axes and redraw the plot anew
-            #
             self.axes.clear()        
             self.axes.grid(self.grid_cb.isChecked())
             
@@ -161,9 +162,10 @@ class AppForm(QMainWindow):
 
             ydata[ydata >1e34] = np.nan
             tdata = self.ncdata['time'][:]
-
+            if all(ydata):
+                ydata[0]=1
+                ydata[-1]=1
             # clear the axes and redraw the plot anew
-            #
             self.axes.clear()        
             self.axes.grid(self.grid_cb.isChecked())
             
@@ -420,6 +422,7 @@ class AppForm(QMainWindow):
         #set view sizes
         self.tableview.setMinimumSize(720,180)
         self.tableview.resizeColumnsToContents()
+
     def load_netcdf( self):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
         self.glob_atts = df.get_global_atts()
