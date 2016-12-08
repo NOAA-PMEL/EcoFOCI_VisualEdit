@@ -216,10 +216,10 @@ class AppForm(QMainWindow):
 
 
         for k in self.vars_dic.keys():
-            if k not in ['time','time2','lat','lon','depth','latitude','longitude']:
+            if k not in ['time','time2','dep','lat','lon','depth','latitude','longitude']:
                 self.param_dropdown.addItem(k)
             
-            if k in ['lat','lon','depth','latitude','longitude']:
+            if k in ['dep','lat','lon','depth','latitude','longitude']:
                 try:
                     self.station_data[k] =str(self.ncdata[k][0])
                 except:
@@ -384,10 +384,10 @@ class AppForm(QMainWindow):
                          [16,17,18,19,20]]     
             header = ['col1','col2','col3','col4','col5']
         else:
-            tabledata = [val[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['lat','lon','depth','time','time2']]
+            tabledata = [val[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2']]
             #trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.ncdata.keys() if key not in ['lat','lon','depth','time','time2'] ]
+            header = [key for key in self.ncdata.keys() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2'] ]
 
         return tabledata, header
 
