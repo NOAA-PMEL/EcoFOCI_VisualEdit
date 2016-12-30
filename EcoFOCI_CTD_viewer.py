@@ -144,10 +144,10 @@ class AppForm(QMainWindow):
         #choose data source to plot from, table or file
         if self.update_table_cb.isChecked():
             var1 = str(self.param_dropdown.currentText())
-            updated_data = self.table2dic()
+            self.tabledata_updated = self.table2dic()
 
-            xdata = np.array(updated_data[var1],dtype=float)
-            y = np.array(updated_data['dep'],dtype=float)
+            xdata = np.array(self.tabledata_updated[var1],dtype=float)
+            y = np.array(self.tabledata_updated['dep'],dtype=float)
             #make missing data unplotted
             ind = xdata > 1e34
             xdata[ind] = np.nan
@@ -221,6 +221,21 @@ class AppForm(QMainWindow):
     """-------------------------------------
     Buttons and Actions
     ----------------------------------------"""
+
+    def on_make_missing(self, missing_value=1e35):
+        """
+        make selected variable all missing values
+        """
+        if self.update_table_cb.isChecked():
+            var1 = str(self.param_dropdown.currentText())
+            self.tabledata_updated = self.table2dic()
+            print "setting {var} to {missing}".format(var=var1,missing=missing_value)
+            self.tabledata_updated[var1] = [1e35 for x in self.tabledata_updated[var1]]
+            self.load_table(reload_table=True)
+            self.on_draw()
+        else:
+            var1 = str(self.param_dropdown.currentText())
+        
 
     def on_save(self):
         """
@@ -339,6 +354,9 @@ class AppForm(QMainWindow):
 
         self.save_button = QPushButton("&save")
         self.connect(self.save_button, SIGNAL('clicked()'), self.on_save)
+
+        self.make_missing_button = QPushButton("&make missing")
+        self.connect(self.make_missing_button, SIGNAL('clicked()'), self.on_make_missing)
                 
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
@@ -366,7 +384,7 @@ class AppForm(QMainWindow):
         mhbox2 = QHBoxLayout()
 
         for w2 in [ self.grid_cb, self.update_table_cb,
-                    self.param_dropdown, self.save_button]:
+                    self.param_dropdown, self.make_missing_button, self.save_button]:
             mhbox2.addWidget(w2)
             mhbox2.setAlignment(w2, Qt.AlignVCenter)
 
@@ -387,7 +405,7 @@ class AppForm(QMainWindow):
     Convert Data Format
     ----------------------------------------"""
 
-    def dic2list(self, test=False):
+    def dic2list(self, reload_table=False):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
                 columns are per variable and rows are per depth
 
@@ -397,18 +415,20 @@ class AppForm(QMainWindow):
 
         """
 
-        if test:
-            tabledata = [[1234567890,2,3,4,5],
-                         [6,7,8,9,10],
-                         [11,12,13,14,15],
-                         [16,17,18,19,20]]     
-            header = ['col1','col2','col3','col4','col5']
-        else:
+        if not reload_table:
             tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['lat','lon','dep','time','time2']]
             tabledata = [self.ncdata['dep'].tolist()] + tabledata
             trans_tabledata = map(list, zip(*tabledata))
 
             header = [key for key in self.ncdata.keys() if key not in ['lat','lon','dep','time','time2'] ]
+            header = ['dep'] + header
+
+        else:
+            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in ['lat','lon','dep','time','time2']]
+            tabledata = [self.tabledata_updated['dep']] + tabledata
+            trans_tabledata = map(list, zip(*tabledata))
+
+            header = [key for key in self.tabledata_updated.keys() if key not in ['lat','lon','dep','time','time2'] ]
             header = ['dep'] + header
 
         return trans_tabledata, header
@@ -424,7 +444,10 @@ class AppForm(QMainWindow):
             temp = []
             for row in range(self.tablemodel.rowCount(parent=QtCore.QModelIndex())):
                 value = self.tablemodel.index( row, col, QModelIndex() ).data( Qt.DisplayRole ).toString()
-                temp = temp + [str(value)]
+                if float(value) > 1e34:
+                    temp = temp + ['1e+35']
+                else:
+                    temp = temp + ["{0:.4f}".format(float(value))]
             updated_data[self.table_header[col]] = temp
 
         return updated_data
@@ -433,9 +456,9 @@ class AppForm(QMainWindow):
     Load and Save Data
     ----------------------------------------"""
 
-    def load_table(self):
+    def load_table(self, reload_table=False):
         
-        self.table_rawdata, self.table_header = self.dic2list()
+        self.table_rawdata, self.table_header = self.dic2list(reload_table=reload_table)
 
         self.tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
 
@@ -445,7 +468,7 @@ class AppForm(QMainWindow):
         self.tableview.setMinimumSize(720,568)
         self.tableview.resizeColumnsToContents()
 
-    def load_netcdf( self, file=parent_dir+'/example_data/example_ctd_data.nc'):
+    def load_netcdf(self):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
         self.glob_atts = df.get_global_atts()
         self.vars_dic = df.get_vars()
@@ -458,8 +481,11 @@ class AppForm(QMainWindow):
         else:
             data = self.ncdata
 
+        #remove attributes that will get autogenerated in netcdf generation
+        map(lambda x: self.glob_atts.pop(x,None), ['EPIC_FILE_GENERATOR'])
+
         #read in basic epic key parameters
-        epic_vars = ConfigParserLocal.get_config(parent_dir+'/config/ctd_epickeys.json')
+        epic_vars = ConfigParserLocal.get_config(self.parent_dir+'/config/ctd_epickeys.json')
 
         ncinstance = NetCDF_Create_CTD(savefile=file)
         ncinstance.file_create()
