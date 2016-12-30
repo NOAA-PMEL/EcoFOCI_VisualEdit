@@ -26,6 +26,8 @@ class EcoFOCI_netCDF(object):
         self.nchandle = Dataset(file_name,'a')
         self.file_name = file_name
         
+    def _getnchandle_(self):
+        return (self.nchandle)        
 
     def get_global_atts(self):
         """get global attribute for specified name"""
