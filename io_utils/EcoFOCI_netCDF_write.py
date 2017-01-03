@@ -98,7 +98,7 @@ class NetCDF_Create_CTD(object):
         """
         Assumes
         -------
-        Dimensions will be 'time', 'depth', 'lat', 'lon'
+        Dimensions will be 'time', 'dep', 'lat', 'lon'
         
         Todo
         ----
@@ -289,7 +289,7 @@ class NetCDF_QCD_CTD(object):
         """
         Assumes
         -------
-        Dimensions will be 'time', 'depth', 'lat', 'lon'
+        Dimensions will be 'time', 'dep', 'lat', 'lon'
         
         Todo
         ----
@@ -315,7 +315,7 @@ class NetCDF_QCD_CTD(object):
         
         for v_name in nchandle.variables.keys():
             print v_name
-            if not v_name in ['time','time2','depth','lat','lon','latitude','longitude']:
+            if not v_name in ['time','time2','dep','depth','lat','lon','latitude','longitude']:
                 print "Copying attributes for {0}".format(v_name)
                 rec_vars.append( v_name )
                 rec_var_name.append( nchandle.variables[v_name].name )
@@ -326,7 +326,7 @@ class NetCDF_QCD_CTD(object):
                 rec_var_epic.append( nchandle.variables[v_name].epic_code )
 
         
-        rec_vars = ['time','time2','depth','lat','lon'] + rec_vars
+        rec_vars = ['time','time2','dep','lat','lon'] + rec_vars
 
         rec_var_name = ['', '', '', '', ''] + rec_var_name
         rec_var_longname = ['', '', '', '', ''] + rec_var_longname
@@ -374,7 +374,7 @@ class NetCDF_QCD_CTD(object):
         """ """
         
         for ind, varname in enumerate(data_dic.keys()):
-            if not varname in ['time','time2','lat','lon','depth','latitude','longitude']:
+            if not varname in ['time','time2','lat','lon','dep','depth','latitude','longitude']:
                 di = self.rec_vars.index(varname)
                 self.var_class[di][:] = data_dic[varname][:]
         
