@@ -21,8 +21,8 @@ Purpose:
 History:
 --------
 
+2017-03-22: S.Bell - Use xarray package to read netcdf data
 2016-10-24: Bell - Begin merging ctd_qt_demo and table_ctd_qt_demo.py
-
 """
 
 # system stack
@@ -33,6 +33,7 @@ from PyQt4.QtGui import *
 
 #science stack
 import numpy as np
+import xarray as xr
 import json
 
 #visual stack
@@ -42,7 +43,6 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 
 #user stack
-from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 from io_utils.EcoFOCI_netCDF_write import NetCDF_QCD_CTD
 from io_utils import ConfigParserLocal
 
@@ -168,10 +168,10 @@ class AppForm(QMainWindow):
             var1 = str(self.param_dropdown.currentText())
             try:
                 #make missing data unplotted
-                xdata = np.copy(self.ncdata[var1][0,:,0,0])
+                xdata = np.copy(self.ncdata[var1].data[0,:,0,0])
                 ind = xdata >1e34
                 xdata[ind] = np.nan
-                y = self.ncdata['dep'][:]
+                y = self.ncdata['dep']
 
                 # clear the axes and redraw the plot anew
                 #
@@ -184,10 +184,10 @@ class AppForm(QMainWindow):
                     picker=5)            
             except:
                 #make missing data unplotted
-                xdata = np.copy(self.ncdata[var1][:])
+                xdata = np.copy(self.ncdata[var1].data[:])
                 ind = xdata >1e34
                 xdata[ind] = np.nan
-                y = self.ncdata['dep'][:]
+                y = self.ncdata['dep']
 
                 # clear the axes and redraw the plot anew
                 #
@@ -257,11 +257,11 @@ class AppForm(QMainWindow):
     def populate_dropdown(self):
         self.load_netcdf()
         self.station_data = {}
-        for k in self.vars_dic.keys():
+        for k in self.vars_dic:
             if k not in ['time','time2','lat','lon']:
                 self.param_dropdown.addItem(k)
             else:
-                self.station_data[k] =str(self.ncdata[k][0])
+                self.station_data[k] =str(self.ncdata[k].data[0])
 
     def create_status_bar(self):
         self.status_text = QLabel(json.dumps(self.station_data))
@@ -417,8 +417,8 @@ class AppForm(QMainWindow):
         """
 
         if not reload_table:
-            tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['lat','lon','dep','time','time2']]
-            tabledata = [self.ncdata['dep'].tolist()] + tabledata
+            tabledata = [val.data[0,:,0,0].tolist() for key, val in self.ncdata.data_vars.iteritems() if key not in ['lat','lon','dep','time','time2']]
+            tabledata = [self.ncdata['dep'].data.tolist()] + tabledata
             trans_tabledata = map(list, zip(*tabledata))
 
             header = [key for key in self.ncdata.keys() if key not in ['lat','lon','dep','time','time2'] ]
@@ -470,11 +470,10 @@ class AppForm(QMainWindow):
         self.tableview.resizeColumnsToContents()
 
     def load_netcdf(self):
-        df = EcoFOCI_netCDF(unicode(self.textbox.text()))
-        self.glob_atts = df.get_global_atts()
-        self.vars_dic = df.get_vars()
-        self.ncdata = df.ncreadfile_dic()
-        df.close()
+        with xr.open_dataset(self.textbox.text(), decode_cf=False) as xrdf:
+            self.glob_atts = xrdf.attrs
+            self.vars_dic = xrdf.keys()
+            self.ncdata = xrdf.load()
 
     def save_netcdf( self, file, **kwargs):
         data=kwargs['data']
@@ -489,10 +488,10 @@ class AppForm(QMainWindow):
         ncinstance = NetCDF_QCD_CTD(savefile=file)
         ncinstance.file_create()
         ncinstance.sbeglobal_atts(**self.glob_atts)
-        ncinstance.dimension_init(depth_len=len(self.ncdata['dep']))
+        ncinstance.dimension_init(depth_len=len(self.ncdata['dep'].data))
         ncinstance.variable_init(nchandle)
-        ncinstance.add_coord_data(depth=self.ncdata['dep'], latitude=self.ncdata['lat'], 
-                longitude=self.ncdata['lon'], time1=self.ncdata['time'], time2=self.ncdata['time2'],)
+        ncinstance.add_coord_data(depth=self.ncdata['dep'].data, latitude=self.ncdata['lat'].data, 
+                longitude=self.ncdata['lon'].data, time1=self.ncdata['time'].data, time2=self.ncdata['time2'].data,)
         ncinstance.add_data(data_dic=data)
         ncinstance.add_history('Profile edited and QC\'d')
 
