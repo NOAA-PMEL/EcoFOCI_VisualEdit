@@ -43,7 +43,6 @@ from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as Navigatio
 from matplotlib.figure import Figure
 
 #user stack
-from io_utils.EcoFOCI_netCDF_write import NetCDF_QCD_CTD
 from io_utils import ConfigParserLocal
 
 
