@@ -20,6 +20,7 @@
 # System Packages
 import datetime, os, sys
 import yaml, json
+import xarray as xr
 
 # GUI Packages
 from PyQt4 import QtGui 
@@ -27,8 +28,6 @@ import gui_ui.meta_editor_design as design
 			  # This file holds our MainWindow and all design related things
               # it also keeps events etc that we defined in Qt Designer
 
-#user stack
-from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 
 __author__   = 'Shaun Bell'
 __email__    = 'shaun.bell@noaa.gov'
@@ -76,11 +75,10 @@ class ExampleApp(QtGui.QMainWindow, design.Ui_MainWindow):
         
 
     def load_netcdf(self):
-        df = EcoFOCI_netCDF(self.filename)
-        self.glob_atts = df.get_global_atts()
-        self.vars_dic = df.get_vars()
-        self.ncdata = df.ncreadfile_dic()
-        df.close()
+        with xr.open_dataset(self.textbox.text(), decode_cf=False) as xrdf:
+            self.glob_atts = xrdf.attrs
+            self.vars_dic = xrdf.keys()
+            self.ncdata = xrdf.load()
 
     def saveMeta(self):
         pass
