@@ -5,7 +5,7 @@
 Background
 ----------
 
-ctd_qt_demo.py
+EcoFOCI_CTD_viewer.py
 
 ----
 
