@@ -58,6 +58,8 @@ class AppForm(QMainWindow):
     example_path = parent_dir+'/example_data/example_ctd_data.nc'
 
     def __init__(self, parent=None, active_file=example_path):
+
+        self.dim_list = ['lat','lon','dep','time','time2']
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('EcoFOCI CTD Viewer')
 
@@ -242,7 +244,8 @@ class AppForm(QMainWindow):
         """
         updated_data = self.table2dic()
         file_out = unicode(self.textbox.text()).replace('.nc','.ed.nc')
-        self.save_netcdf(file_out, data=updated_data)
+        self.dic2xarray(updated_data)
+        self.save_netcdf()
     
 
     def on_reload(self):
@@ -415,19 +418,19 @@ class AppForm(QMainWindow):
         """
 
         if not reload_table:
-            tabledata = [val.data[0,:,0,0].tolist() for key, val in self.ncdata.data_vars.iteritems() if key not in ['lat','lon','dep','time','time2']]
+            tabledata = [val.data[0,:,0,0].tolist() for key, val in self.ncdata.data_vars.iteritems() if key not in self.dim_list]
             tabledata = [self.ncdata['dep'].data.tolist()] + tabledata
             trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.ncdata.keys() if key not in ['lat','lon','dep','time','time2'] ]
+            header = [key for key in self.ncdata.keys() if key not in self.dim_list ]
             header = ['dep'] + header
 
         else:
-            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in ['lat','lon','dep','time','time2']]
+            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list]
             tabledata = [self.tabledata_updated['dep']] + tabledata
             trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.tabledata_updated.keys() if key not in ['lat','lon','dep','time','time2'] ]
+            header = [key for key in self.tabledata_updated.keys() if key not in self.dim_list]
             header = ['dep'] + header
 
         return trans_tabledata, header
@@ -454,6 +457,11 @@ class AppForm(QMainWindow):
     """-------------------------------------
     Load and Save Data
     ----------------------------------------"""
+    def dic2xarray(self, data_update):
+        for var in self.ncdata.data_vars.keys():
+            if var not in self.dim_list:
+                dims = self.ncdata[var].to_dict()['dims']
+                self.ncdata[var] = (('dep'), data_update[var])
 
     def load_table(self, reload_table=False):
         
@@ -473,7 +481,7 @@ class AppForm(QMainWindow):
             self.vars_dic = xrdf.keys()
             self.ncdata = xrdf.load()
 
-    def save_netcdf( self, file, **kwargs):
+    def save_netcdf(self, **kwargs):
 
         try:
             self.ncdata.attrs['History'] = 'ManualQC edits:' + str(datetime.datetime.now()) + '\n' + self.ncdata.attrs['History']
