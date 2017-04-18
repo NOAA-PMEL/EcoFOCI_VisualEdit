@@ -245,8 +245,7 @@ class AppForm(QMainWindow):
         """
         updated_data = self.table2dic()
         file_out = unicode(self.textbox.text()).replace('.nc','.ed.nc')
-        self.dic2xarray(updated_data)
-        self.save_netcdf()
+        self.save_netcdf(file_out,data=updated_data)
     
 
     def on_reload(self):
@@ -421,13 +420,8 @@ class AppForm(QMainWindow):
         """
 
         if not reload_table:
-<<<<<<< HEAD
-            tabledata = [val.data[0,:,0,0].tolist() for key, val in self.ncdata.data_vars.iteritems() if key not in self.dim_list]
-            tabledata = [self.ncdata['dep'].data.tolist()] + tabledata
-=======
-            tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['lat','lon','dep','time','time2']]
+            tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list]
             tabledata = [self.ncdata['dep'].tolist()] + tabledata
->>>>>>> parent of f010f52... Merge pull request #16 from NOAA-PMEL/xarray_ingest
             trans_tabledata = map(list, zip(*tabledata))
 
             header = [key for key in self.ncdata.keys() if key not in self.dim_list ]
@@ -465,11 +459,6 @@ class AppForm(QMainWindow):
     """-------------------------------------
     Load and Save Data
     ----------------------------------------"""
-    def dic2xarray(self, data_update):
-        for var in self.ncdata.data_vars.keys():
-            if var not in self.dim_list:
-                dims = self.ncdata[var].to_dict()['dims']
-                self.ncdata[var] = (('dep'), data_update[var])
 
     def load_table(self, reload_table=False):
         
@@ -490,18 +479,6 @@ class AppForm(QMainWindow):
         self.ncdata = df.ncreadfile_dic()
         df.close()
 
-<<<<<<< HEAD
-    def save_netcdf(self, **kwargs):
-
-        try:
-            self.ncdata.attrs['History'] = 'ManualQC edits:' + str(datetime.datetime.now()) + '\n' + self.ncdata.attrs['History']
-        except KeyError:
-            self.ncdata.attrs['History'] = 'ManualQC edits:' + str(datetime.datetime.now())
-        datafile = self.textbox.text()
-        self.ncdata.to_netcdf(str(datafile).replace('.nc','.ed.nc'),format='NETCDF3_CLASSIC')
-
-
-=======
     def save_netcdf( self, file, **kwargs):
         data=kwargs['data']
 
@@ -524,7 +501,6 @@ class AppForm(QMainWindow):
 
         df.close()
         ncinstance.close()
->>>>>>> parent of f010f52... Merge pull request #16 from NOAA-PMEL/xarray_ingest
 
 """-------------------------------------Table Model----------------------------------------------"""
 
