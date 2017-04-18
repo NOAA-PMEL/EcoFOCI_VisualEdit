@@ -21,7 +21,6 @@ Purpose:
 History:
 --------
 
-2017-03-22: S.Bell - Use xarray package to read netcdf data
 2016-10-24: Bell - Begin merging timeseries_qt_demo and table_ctd_qt_demo.py
 
 """
@@ -34,7 +33,6 @@ from PyQt4.QtGui import *
 
 #science stack
 import numpy as np
-import xarray as xr
 import json
 
 #visual stack
@@ -45,6 +43,8 @@ from matplotlib.figure import Figure
 
 
 #user stack
+from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
+from io_utils.EcoFOCI_netCDF_write import NetCDF_Create_CTD
 from calc.EPIC2Datetime import EPIC2Datetime 
 from io_utils import ConfigParserLocal
 
@@ -71,8 +71,8 @@ class AppForm(QMainWindow):
         self.create_main_frame()
 
         self.textbox.setText(active_file)
-        self.load_netcdf()
         self.populate_dropdown()
+        self.load_netcdf()
         self.create_status_bar()
         self.load_table()
         self.on_draw()
@@ -137,11 +137,13 @@ class AppForm(QMainWindow):
 
             updated_data = self.table2dic()
 
-            tdata = self.ncdata['time_cf'][:]
+            tdata = self.ncdata['time'][:]
             ydata = np.array(updated_data[var1],dtype=float)
             #make missing data unplotted
             ydata[ydata > 1e34] = np.nan
-
+            if all(ydata):
+                ydata[0]=1
+                ydata[-1]=1
             # clear the axes and redraw the plot anew
             self.axes.clear()        
             self.axes.grid(self.grid_cb.isChecked())
@@ -161,8 +163,10 @@ class AppForm(QMainWindow):
             ydata = np.copy(self.ncdata[var1][:,0,0,0])
 
             ydata[ydata >1e34] = np.nan
-            tdata = self.ncdata['time_cf'][:]
-
+            tdata = self.ncdata['time'][:]
+            if all(ydata):
+                ydata[0]=1
+                ydata[-1]=1
             # clear the axes and redraw the plot anew
             self.axes.clear()        
             self.axes.grid(self.grid_cb.isChecked())
@@ -214,7 +218,7 @@ class AppForm(QMainWindow):
         self.station_data = {}
 
 
-        for k in self.vars_dic:
+        for k in self.vars_dic.keys():
             if k not in ['time','time2','dep','lat','lon','depth','latitude','longitude']:
                 self.param_dropdown.addItem(k)
             
@@ -383,7 +387,12 @@ class AppForm(QMainWindow):
             header = [key for key in self.ncdata.keys() if key not in self.dim_list ]
 
         else:
+<<<<<<< HEAD
             tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list]
+=======
+            tabledata = [val[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2']]
+            #trans_tabledata = map(list, zip(*tabledata))
+>>>>>>> parent of f010f52... Merge pull request #16 from NOAA-PMEL/xarray_ingest
 
             header = [key for key in self.tabledata_updated.keys() if key not in self.dim_list]
 
@@ -427,29 +436,17 @@ class AppForm(QMainWindow):
         self.tableview.setMinimumSize(720,180)
         self.tableview.resizeColumnsToContents()
 
-    def load_netcdf(self):
-        with xr.open_dataset(self.textbox.text(), decode_cf=False) as xrdf:
-            self.glob_atts = xrdf.attrs
-            self.vars_dic = xrdf.keys()
-            self.ncdata = xrdf.load()
-
+    def load_netcdf( self):
+        df = EcoFOCI_netCDF(unicode(self.textbox.text()))
+        self.glob_atts = df.get_global_atts()
+        self.vars_dic = df.get_vars()
+        self.ncdata = df.ncreadfile_dic()
+        df.close()
 
         #convert epic time
         #time2 wont exist if it isnt epic keyed time
-        if 'time2' in self.vars_dic:
-            self.ncdata['time_cf'] = EPIC2Datetime(self.ncdata['time'].data, self.ncdata['time2'].data)
-        else:
-            self.ncdata['time_cf'] = self.ncdata['time']
-
-    def save_netcdf( self, file, **kwargs):
-
-        self.ncdata = self.ncdata.drop('time_cf')
-        try:
-            self.ncdata.attrs['History'] = 'ManualQC edits:' + str(datetime.datetime.now()) + '\n' + self.ncdata.attrs['History']
-        except KeyError:
-            self.ncdata.attrs['History'] = 'ManualQC edits:' + str(datetime.datetime.now())
-        datafile = self.textbox.text()
-        self.ncdata.to_netcdf(str(datafile).replace('.nc','.ed.nc'),format='NETCDF3_CLASSIC')
+        if 'time2' in self.vars_dic.keys():
+            self.ncdata['time'] = EPIC2Datetime(self.ncdata['time'], self.ncdata['time2'])
 
 """-------------------------------------Table Model----------------------------------------------"""
 
