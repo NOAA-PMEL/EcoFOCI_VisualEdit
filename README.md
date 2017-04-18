@@ -3,40 +3,6 @@ GUI CTD and Timeseries visualization and editing
 
 Developed for PMEL EcoFOCI Program
 
-<pre>
-.
-├── EcoFOCI_CTD_viewer.py
-├── EcoFOCI_Mooring_viewer.py
-├── README.md
-├── __init__.py
-├── calc
-│   ├── EPIC2Datetime.py
-│   ├── EPIC2Datetime.pyc
-│   ├── __init__.py
-│   └── __init__.pyc
-├── config
-│   └── ctd_epickeys.json
-├── demo_test
-│   ├── ctd_qt_demo.py
-│   ├── mpl_qt_demo.py
-│   ├── table_ctd_qt_demo.py
-│   ├── table_qt_demo.py
-│   └── timeseries_qt_demo.py
-├── example_data
-│   ├── example_ctd_data.ed.nc
-│   ├── example_ctd_data.nc
-│   └── example_timeseries_data.nc
-└── io_utils
-    ├── ConfigParserLocal.py
-    ├── ConfigParserLocal.pyc
-    ├── EcoFOCI_netCDF_read.py
-    ├── EcoFOCI_netCDF_read.pyc
-    ├── EcoFOCI_netCDF_write.py
-    ├── EcoFOCI_netCDF_write.pyc
-    ├── __init__.py
-    └── __init__.pyc
-</pre>
-
 
 ## Available routines
 
