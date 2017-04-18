@@ -450,7 +450,7 @@ class AppForm(QMainWindow):
                 if float(value) > 1e34:
                     temp = temp + ['1e+35']
                 else:
-                    temp = temp + ["{0:.4f}".format(float(value))]
+                    temp = temp + [float("{0:.4f}".format(float(value)))]
             updated_data[self.table_header[col]] = temp
 
         return updated_data
