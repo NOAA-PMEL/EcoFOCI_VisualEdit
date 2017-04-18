@@ -62,6 +62,8 @@ class AppForm(QMainWindow):
     example_path = parent_dir+'/example_data/example_timeseries_data.nc'
 
     def __init__(self, parent=None, active_file=example_path):
+
+        self.dim_list = ['latitude','longitude','dep','lat','lon','depth','time','time2']
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('Timeseries Demo: PyQt with matplotlib')
 
@@ -195,8 +197,8 @@ class AppForm(QMainWindow):
         """
         updated_data = self.table2dic()
         file_out = unicode(self.textbox.text()).replace('.nc','.ed.nc')
-        self.save_netcdf(file_out, data=updated_data)
-    
+        self.dic2xarray(updated_data)
+        self.save_netcdf()    
 
     def on_reload(self):
         """
@@ -364,7 +366,8 @@ class AppForm(QMainWindow):
     Convert Data Format
     ----------------------------------------"""
 
-    def dic2list(self, test=False):
+
+    def dic2list(self, reload_table=False):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
                 columns are per variable and rows are per depth
 
@@ -374,17 +377,15 @@ class AppForm(QMainWindow):
 
         """
 
-        if test:
-            tabledata = [[1234567890,2,3,4,5],
-                         [6,7,8,9,10],
-                         [11,12,13,14,15],
-                         [16,17,18,19,20]]     
-            header = ['col1','col2','col3','col4','col5']
-        else:
-            tabledata = [val.data[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2','time_cf']]
-            #trans_tabledata = map(list, zip(*tabledata))
+        if not reload_table:
+            tabledata = [val.data[:,0,0,0].tolist() for key, val in self.ncdata.data_vars.iteritems() if key not in self.dim_list]
 
-            header = [key for key in self.ncdata.keys() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2'] ]
+            header = [key for key in self.ncdata.keys() if key not in self.dim_list ]
+
+        else:
+            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list]
+
+            header = [key for key in self.tabledata_updated.keys() if key not in self.dim_list]
 
         return tabledata, header
 
@@ -407,10 +408,16 @@ class AppForm(QMainWindow):
     """-------------------------------------
     Load and Save Data
     ----------------------------------------"""
+    def dic2xarray(self, data_update):
+        for var in self.ncdata.data_vars.keys():
+            if var not in self.dim_list:
+                dims = self.ncdata[var].to_dict()['dims']
+                self.ncdata[var] = (('time'), data_update[var])
 
-    def load_table(self):
+
+    def load_table(self, reload_table=False):
         
-        self.table_rawdata, self.table_header = self.dic2list()
+        self.table_rawdata, self.table_header = self.dic2list(reload_table=reload_table)
 
         self.tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
 
