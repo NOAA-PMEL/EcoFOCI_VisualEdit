@@ -253,6 +253,7 @@ class AppForm(QMainWindow):
             Reloads (or loads) selected data file
         """
         self.grid_cb.setChecked(False)
+        self.update_table_cb.setChecked(False)
         self.load_netcdf()
         self.on_draw()
 
@@ -370,7 +371,7 @@ class AppForm(QMainWindow):
                 
         self.param_dropdown = QComboBox()
 
-        self.connect(self.param_dropdown, SIGNAL('clicked()'), self.on_draw)
+        self.connect(self.param_dropdown, SIGNAL('activated(int)'), self.on_draw)
         
         self.tableview = QTableView()
 
