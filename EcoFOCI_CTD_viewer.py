@@ -158,10 +158,15 @@ class AppForm(QMainWindow):
             self.axes.clear()        
             self.axes.grid(self.grid_cb.isChecked())
             
-            self.axes.plot(
-                xdata,y,
-                marker='o',
-                picker=5)            
+            if self.datapoints_cb.isChecked():
+                self.axes.plot(
+                    xdata,y,
+                    marker='*',
+                    picker=5)
+            else:
+                self.axes.plot(
+                    xdata,y,
+                    picker=5)                
 
 
             self.fig.suptitle(self.station_data, fontsize=12)
@@ -180,10 +185,15 @@ class AppForm(QMainWindow):
                 self.axes.clear()        
                 self.axes.grid(self.grid_cb.isChecked())
                 
-                self.axes.plot(
-                    xdata,y,
-                    marker='o',
-                    picker=5)            
+                if self.datapoints_cb.isChecked():
+                    self.axes.plot(
+                        xdata,y,
+                        marker='*',
+                        picker=5)
+                else:
+                    self.axes.plot(
+                        xdata,y,
+                        picker=5)           
             except:
                 #make missing data unplotted
                 xdata = np.copy(self.ncdata[var1][:])
@@ -196,10 +206,15 @@ class AppForm(QMainWindow):
                 self.axes.clear()        
                 self.axes.grid(self.grid_cb.isChecked())
                 
-                self.axes.plot(
-                    xdata,y,
-                    marker='o',
-                    picker=5)
+                if self.datapoints_cb.isChecked():
+                    self.axes.plot(
+                        xdata,y,
+                        marker='*',
+                        picker=5)
+                else:
+                    self.axes.plot(
+                        xdata,y,
+                        picker=5) 
 
             self.fig.suptitle(self.station_data, fontsize=12)
 
@@ -361,7 +376,11 @@ class AppForm(QMainWindow):
 
         self.make_missing_button = QPushButton("&make missing")
         self.connect(self.make_missing_button, SIGNAL('clicked()'), self.on_make_missing)
-                
+
+        self.datapoints_cb = QCheckBox("Show &DataPoints")
+        self.datapoints_cb.setChecked(True)
+        self.connect(self.datapoints_cb, SIGNAL('stateChanged(int)'), self.on_draw)
+
         self.grid_cb = QCheckBox("Show &Grid")
         self.grid_cb.setChecked(False)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
@@ -387,7 +406,7 @@ class AppForm(QMainWindow):
 
         mhbox2 = QHBoxLayout()
 
-        for w2 in [ self.grid_cb, self.update_table_cb,
+        for w2 in [ self.grid_cb, self.update_table_cb, self.datapoints_cb,
                     self.param_dropdown, self.make_missing_button, self.save_button]:
             mhbox2.addWidget(w2)
             mhbox2.setAlignment(w2, Qt.AlignVCenter)
