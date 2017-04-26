@@ -61,6 +61,8 @@ class AppForm(QMainWindow):
     example_path = parent_dir+'/example_data/example_timeseries_data.nc'
 
     def __init__(self, parent=None, active_file=example_path):
+    
+        self.dim_list = ['lat','lon','dep','depth','time','time2','time_cf']
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('Timeseries Demo: PyQt with matplotlib')
 
@@ -367,7 +369,8 @@ class AppForm(QMainWindow):
     Convert Data Format
     ----------------------------------------"""
 
-    def dic2list(self, test=False):
+
+    def dic2list(self, reload_table=False):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
                 columns are per variable and rows are per depth
 
@@ -377,28 +380,28 @@ class AppForm(QMainWindow):
 
         """
 
-        if test:
-            tabledata = [[1234567890,2,3,4,5],
-                         [6,7,8,9,10],
-                         [11,12,13,14,15],
-                         [16,17,18,19,20]]     
-            header = ['col1','col2','col3','col4','col5']
+        if not reload_table:
+            try:
+                trans_tabledata = [val[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
+            except IndexError:
+                trans_tabledata = [val[:].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
+
+
+            header = [key for key in sorted(self.ncdata.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
+
         else:
-<<<<<<< HEAD
-<<<<<<< HEAD
-            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list]
-=======
-            tabledata = [val[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2']]
-            #trans_tabledata = map(list, zip(*tabledata))
->>>>>>> parent of f010f52... Merge pull request #16 from NOAA-PMEL/xarray_ingest
-=======
-            tabledata = [val.data[:,0,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2','time_cf']]
-            #trans_tabledata = map(list, zip(*tabledata))
->>>>>>> parent of 5f6e4d1... convert to xarray
+            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
+            trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.ncdata.keys() if key not in ['latitude','longitude','dep','lat','lon','depth','time','time2'] ]
+            header = [key for key in sorted(self.tabledata_updated.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
 
-        return tabledata, header
+        return trans_tabledata, header
+
+    def dic2dic(self, reload_table=False):
+        if not reload_table:
+            return self.ncdata
+        else:
+            return self.tabledata_updated  
 
     def table2dic(self):
         """
@@ -419,18 +422,15 @@ class AppForm(QMainWindow):
     """-------------------------------------
     Load and Save Data
     ----------------------------------------"""
-
-    def load_table(self):
+    def load_table(self, reload_table=False):
         
-        self.table_rawdata, self.table_header = self.dic2list()
+        self.table_rawdata = self.dic2dic(reload_table=reload_table)
+        trash, self.table_header = self.dic2list(reload_table=reload_table)
+        self.tableview = MyTable(self.table_rawdata, self.dim_list, self.tableview)
 
-        self.tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
-
-        self.tableview.setModel(self.tablemodel)
-
-        #set view sizes
-        self.tableview.setMinimumSize(720,180)
+        self.tableview.setMinimumSize(1000,1000)
         self.tableview.resizeColumnsToContents()
+
 
     def load_netcdf( self):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
@@ -444,42 +444,41 @@ class AppForm(QMainWindow):
         if 'time2' in self.vars_dic.keys():
             self.ncdata['time'] = EPIC2Datetime(self.ncdata['time'], self.ncdata['time2'])
 
-"""-------------------------------------Table Model----------------------------------------------"""
+"""-------------------------------------QTable Widget ----------------------------------------------"""
 
-# creation of the table model
-class MyTableModel(QAbstractTableModel):
-    def __init__(self, datain, headerdata, parent = None, *args):
-        QAbstractTableModel.__init__(self, parent, *args)
-        self.arraydata = datain
-        self.headerdata = headerdata
-        #self.colindex = range(self.columnCount(parent=QtCore.QModelIndex()))
+class MyTable(QTableWidget):
+    def __init__(self, data, dim_list, parent = None, *args):
+        QTableWidget.__init__(self, parent, *args)
+        self.data = data
+        self.dim_list = dim_list
+        self.setColumnCount(np.shape(data['time'])[0])
+        self.setRowCount(len(data) - len(dim_list)+2)
+        self.setmydata()
+        self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
-    def rowCount(self, parent):
-        return len(self.arraydata)
-
-    def columnCount(self, parent):
-        return len(self.arraydata[0])
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-        elif role != Qt.DisplayRole:
-            return None
-        return (self.arraydata[index.row()][index.column()])
-
-    def setData(self, index, value, role):
-        self.arraydata[index.row()][index.column()] = value
-        return True
-
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Vertical and role == Qt.DisplayRole:
-            return QVariant(self.headerdata[col])
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return QVariant(col)       
-        return QVariant()
-
+    def onClick(self):
+        print "Test"
+        
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+    def setmydata(self):
+ 
+        verHeaders = []
+        valCol = 0
+        for n, key in enumerate(sorted(self.data.keys())):
+            if (key not in self.dim_list) or (key in ['dep','depth']):
+                verHeaders.append(key)
+                try:
+                    for m, item in enumerate(self.data[key][:,0,0,0]):
+                        newitem = QTableWidgetItem(str(item))
+                        self.setItem(valCol, m, newitem)
+                except IndexError:
+                    for m, item in enumerate(self.data[key][:]):
+                        newitem = QTableWidgetItem(str(item))
+                        self.setItem(valCol, m, newitem)
+                valCol += 1
+        self.setVerticalHeaderLabels(verHeaders)
 
 """-------------------------------------Main Loop----------------------------------------------"""
 

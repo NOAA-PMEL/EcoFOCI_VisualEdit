@@ -228,7 +228,11 @@ class AppForm(QMainWindow):
     def highlight_table_column(self):
         #higlight column with chosen variable plotted
         self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
-        
+
+    def on_table_header_doubleClicked(self, index):
+        activeHeader = self.tableview.horizontalHeaderItem(index).text()
+        self.param_dropdown.setCurrentIndex(self.param_dropdown.keys().index(activeHeader))
+        print str(self.param_dropdown.currentText())
     """-------------------------------------
     Buttons and Actions
     ----------------------------------------"""
@@ -467,7 +471,7 @@ class AppForm(QMainWindow):
         for col in range(self.tableview.columnCount()):
             temp = []
             for row in range(self.tableview.rowCount()):
-                value = self.tableview.index( row, col, QModelIndex() ).data( Qt.DisplayRole ).toString()
+                value = self.tableview.item(row,col).text()
                 if float(value) > 1e34:
                     temp = temp + ['1e+35']
                 else:
@@ -529,7 +533,11 @@ class MyTable(QTableWidget):
         self.setRowCount(np.shape(data['dep'])[0])
         self.setColumnCount(len(data) - len(dim_list)+1)
         self.setmydata()
+        self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
+    def onClick(self):
+        print "Test"
+        
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
