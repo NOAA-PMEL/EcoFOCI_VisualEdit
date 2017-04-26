@@ -73,7 +73,7 @@ class NetCDF_Create_CTD(object):
     def sbeglobal_atts(self, CREATION_DATE='', DATA_CMNT='', WATER_MASS='', WATER_DEPTH=9999, 
                        PROG_CMNT01='', SFC_EXTEND='', EDIT_CMNT01='', STATION_NAME='',  CRUISE='',
                        SerialNumber='',INST_TYPE='', COORD_SYSTEM='', DATA_TYPE='', CAST='',
-                       BAROMETER='', WIND_DIR='', WIND_SPEED='', AIR_TEMP='',  History=''):
+                       BAROMETER='', WIND_DIR='', WIND_SPEED='', AIR_TEMP='',  History='', **kwargs):
 
         self.rootgrpID.CREATION_DATE = CREATION_DATE
         self.rootgrpID.EPIC_FILE_GENERATOR = __file__.split('/')[-1] + ' ' + __version__ 

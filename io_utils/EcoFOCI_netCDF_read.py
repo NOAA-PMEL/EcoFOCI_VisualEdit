@@ -35,7 +35,8 @@ class EcoFOCI_netCDF(object):
         att_names = self.nchandle.ncattrs()
         
         for name in att_names:
-            g_atts[name] = self.nchandle.getncattr(name)
+            if not name in ['PROG_CMNT1','PROG_CMNT2','PROG_CMNT3','PROG_CMNT4']:
+                g_atts[name] = self.nchandle.getncattr(name)
             
         return g_atts
 
