@@ -223,18 +223,16 @@ class AppForm(QMainWindow):
             self.inverted = True
         self.canvas.draw()
 
-        #reload table data
-        if self.update_table_cb.isChecked():
-            self.highlight_table_column()
-        else:
-            self.load_table()
-            self.highlight_table_column()
+        self.highlight_table_column()
 
     def highlight_table_column(self):
         #higlight column with chosen variable plotted
         self.tableview.selectColumn(self.table_header.index(self.param_dropdown.currentText()))
 
-
+    def on_table_header_doubleClicked(self, index):
+        activeHeader = self.tableview.horizontalHeaderItem(index).text()
+        self.param_dropdown.setCurrentIndex(self.param_dropdown.keys().index(activeHeader))
+        print str(self.param_dropdown.currentText())
     """-------------------------------------
     Buttons and Actions
     ----------------------------------------"""
@@ -393,7 +391,8 @@ class AppForm(QMainWindow):
 
         self.connect(self.param_dropdown, SIGNAL('activated(int)'), self.on_draw)
         
-        self.tableview = QTableView()
+        self.tableview = QTableWidget()
+
 
         #
         # Layout with box sizers
@@ -439,22 +438,28 @@ class AppForm(QMainWindow):
         """
 
         if not reload_table:
-            tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list]
-            tabledata = [self.ncdata['dep'].tolist()] + tabledata
+            try:
+                tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
+            except IndexError:
+                tabledata = [val[:].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
+
             trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.ncdata.keys() if key not in self.dim_list ]
-            header = ['dep'] + header
+            header = [key for key in sorted(self.ncdata.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
 
         else:
-            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list]
-            tabledata = [self.tabledata_updated['dep']] + tabledata
+            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
             trans_tabledata = map(list, zip(*tabledata))
 
-            header = [key for key in self.tabledata_updated.keys() if key not in self.dim_list]
-            header = ['dep'] + header
+            header = [key for key in sorted(self.tabledata_updated.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
 
         return trans_tabledata, header
+
+    def dic2dic(self, reload_table=False):
+        if not reload_table:
+            return self.ncdata
+        else:
+            return self.tabledata_updated        
 
     def table2dic(self):
         """
@@ -463,10 +468,10 @@ class AppForm(QMainWindow):
         updated_data = {}
         
 
-        for col in range(self.tablemodel.columnCount(parent=QtCore.QModelIndex())):
+        for col in range(self.tableview.columnCount()):
             temp = []
-            for row in range(self.tablemodel.rowCount(parent=QtCore.QModelIndex())):
-                value = self.tablemodel.index( row, col, QModelIndex() ).data( Qt.DisplayRole ).toString()
+            for row in range(self.tableview.rowCount()):
+                value = self.tableview.item(row,col).text()
                 if float(value) > 1e34:
                     temp = temp + ['1e+35']
                 else:
@@ -481,14 +486,11 @@ class AppForm(QMainWindow):
 
     def load_table(self, reload_table=False):
         
-        self.table_rawdata, self.table_header = self.dic2list(reload_table=reload_table)
+        self.table_rawdata = self.dic2dic(reload_table=reload_table)
+        trash, self.table_header = self.dic2list(reload_table=reload_table)
+        self.tableview = MyTable(self.table_rawdata, self.dim_list, self.tableview)
 
-        self.tablemodel = MyTableModel(self.table_rawdata, self.table_header, self)
-
-        self.tableview.setModel(self.tablemodel)
-
-        #set view sizes
-        self.tableview.setMinimumSize(720,568)
+        self.tableview.setMinimumSize(1000,1000)
         self.tableview.resizeColumnsToContents()
 
     def load_netcdf(self):
@@ -521,39 +523,42 @@ class AppForm(QMainWindow):
         df.close()
         ncinstance.close()
 
-"""-------------------------------------Table Model----------------------------------------------"""
+"""-------------------------------------QTable Widget ----------------------------------------------"""
 
-# creation of the table model
-class MyTableModel(QAbstractTableModel):
-    def __init__(self, datain, headerdata, parent = None, *args):
-        QAbstractTableModel.__init__(self, parent, *args)
-        self.arraydata = datain
-        self.headerdata = headerdata
+class MyTable(QTableWidget):
+    def __init__(self, data, dim_list, parent = None, *args):
+        QTableWidget.__init__(self, parent, *args)
+        self.data = data
+        self.dim_list = dim_list
+        self.setRowCount(np.shape(data['dep'])[0])
+        self.setColumnCount(len(data) - len(dim_list)+1)
+        self.setmydata()
+        self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
-    def rowCount(self, parent):
-        return len(self.arraydata)
-
-    def columnCount(self, parent):
-        return len(self.arraydata[0])
-
-    def data(self, index, role):
-        if not index.isValid():
-            return None
-        elif role != Qt.DisplayRole:
-            return None
-        return (self.arraydata[index.row()][index.column()])
-
-    def setData(self, index, value, role):
-        self.arraydata[index.row()][index.column()] = value
-        return True
-
-    def headerData(self, col, orientation, role):
-        if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return QVariant(self.headerdata[col])
-        return QVariant()
-
+    def onClick(self):
+        print "Test"
+        
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+    def setmydata(self):
+ 
+        horHeaders = []
+        valCol = 0
+        for n, key in enumerate(sorted(self.data.keys())):
+            if (key not in self.dim_list) or (key in ['dep','depth']):
+                horHeaders.append(key)
+                try:
+                    for m, item in enumerate(self.data[key][0,:,0,0]):
+                        newitem = QTableWidgetItem(str(item))
+                        self.setItem(m, valCol, newitem)
+                except IndexError:
+                    for m, item in enumerate(self.data[key][:]):
+                        newitem = QTableWidgetItem(str(item))
+                        self.setItem(m, valCol, newitem)
+                valCol += 1
+        self.setHorizontalHeaderLabels(horHeaders)
+
 
 """-------------------------------------Main Loop----------------------------------------------"""
 
