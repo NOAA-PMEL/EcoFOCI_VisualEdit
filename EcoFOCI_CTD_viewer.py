@@ -60,7 +60,7 @@ class AppForm(QMainWindow):
 
     def __init__(self, parent=None, active_file=example_path):
 
-        self.dim_list = ['lat','lon','dep','time','time2']
+        self.dim_list = ['lat','lon','time','time2']
         QMainWindow.__init__(self, parent)
         self.setWindowTitle('EcoFOCI CTD Viewer')
 
@@ -115,24 +115,21 @@ class AppForm(QMainWindow):
 
     def keyPressEvent(self, e):
         if (e.modifiers() & QtCore.Qt.ControlModifier):
-            selected = self.tableview.selectedIndexes()
+            selected = self.tableview.selectedRanges()
 
-            s = ''
             if e.key() == QtCore.Qt.Key_C: #copy
-                row_stat = [ival.row()  for ival in selected]
-                col_stat = [ival.column() for ival in selected]
-                
-                # cycle through unique rows and columns for selection
-                # using list(set(list)) allows for selecting non-adjacent cells
-                for r in list(set(row_stat)):
-                    for c in list(set(col_stat)):
+                s = "\t".join([str(self.tableview.horizontalHeaderItem(i).text()) for i in xrange(selected[0].leftColumn(), selected[0].rightColumn()+1)])
+                s = s + '\n'
+
+                for r in xrange(selected[0].topRow(), selected[0].bottomRow()+1):
+                    #s += self.tableview.verticalHeaderItem(r).text() + '\t'
+                    for c in xrange(selected[0].leftColumn(), selected[0].rightColumn()+1):
                         try:
-                            s += str(self.tablemodel.index( r, c, QModelIndex() ).data( Qt.DisplayRole ).toString()) + "\t"
+                            s += str(self.tableview.item(r,c).text()) + "\t"
                         except AttributeError:
                             s += "\t"
                     s = s[:-1] + "\n" #eliminate last '\t'
-                self.clip.setText(s)
-                
+                self.clip.setText(s)                
 
     """-------------------------------------
     matplotlib graphics window - plot data 
@@ -146,10 +143,10 @@ class AppForm(QMainWindow):
         #choose data source to plot from, table or file
         if self.update_table_cb.isChecked():
             var1 = str(self.param_dropdown.currentText())
-            self.tabledata_updated = self.table2dic()
+            tabledata_updated = self.table2dic()
 
-            xdata = np.array(self.tabledata_updated[var1],dtype=float)
-            y = np.array(self.tabledata_updated['dep'],dtype=float)
+            xdata = np.array(tabledata_updated[var1],dtype=float)
+            y = np.array(tabledata_updated['dep'],dtype=float)
             #make missing data unplotted
             ind = xdata > 1e34
             xdata[ind] = np.nan
@@ -243,10 +240,14 @@ class AppForm(QMainWindow):
         """
         if self.update_table_cb.isChecked():
             var1 = str(self.param_dropdown.currentText())
-            self.tabledata_updated = self.table2dic()
+            tabledata_updated = self.table2dic()
             print "setting {var} to {missing}".format(var=var1,missing=missing_value)
-            self.tabledata_updated[var1] = [1e35 for x in self.tabledata_updated[var1]]
-            self.load_table(reload_table=True)
+            for col in range(self.tableview.columnCount() ):
+                if (str(self.tableview.horizontalHeaderItem(col).text()) == var1):
+                    for k,v in enumerate(tabledata_updated[var1]):
+                        newitem = QTableWidgetItem(str(1e35))
+                        self.tableview.setItem(k, col, newitem)
+            #self.reload_table(tabledata_updated, from_table=True)
             self.on_draw()
         else:
             var1 = str(self.param_dropdown.currentText())
@@ -265,9 +266,10 @@ class AppForm(QMainWindow):
         """
             Reloads (or loads) selected data file
         """
-        self.grid_cb.setChecked(False)
+        self.grid_cb.setChecked(True)
         self.update_table_cb.setChecked(False)
         self.load_netcdf()
+        self.load_table(reload_table=True)
         self.on_draw()
 
     def populate_dropdown(self):
@@ -380,7 +382,7 @@ class AppForm(QMainWindow):
         self.connect(self.datapoints_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
         self.grid_cb = QCheckBox("Show &Grid")
-        self.grid_cb.setChecked(False)
+        self.grid_cb.setChecked(True)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
         self.update_table_cb = QCheckBox("Use Updated Table")
@@ -427,7 +429,7 @@ class AppForm(QMainWindow):
     Convert Data Format
     ----------------------------------------"""
 
-    def dic2list(self, reload_table=False):
+    def dic2list(self):
         """ Converts a dictionary array of numpy data into a list of lists for the table viewer such that 
                 columns are per variable and rows are per depth
 
@@ -437,29 +439,14 @@ class AppForm(QMainWindow):
 
         """
 
-        if not reload_table:
-            try:
-                tabledata = [val[0,:,0,0].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
-            except IndexError:
-                tabledata = [val[:].tolist() for key, val in self.ncdata.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
-
-            trans_tabledata = map(list, zip(*tabledata))
-
-            header = [key for key in sorted(self.ncdata.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
-
-        else:
-            tabledata = [val for key, val in self.tabledata_updated.iteritems() if key not in self.dim_list or (key in ['dep','depth'])]
-            trans_tabledata = map(list, zip(*tabledata))
-
-            header = [key for key in sorted(self.tabledata_updated.keys()) if key not in self.dim_list or (key in ['dep','depth'])]
-
-        return trans_tabledata, header
+        header = [key for key in sorted(self.ncdata.keys()) if key not in self.dim_list]
+        return header
 
     def dic2dic(self, reload_table=False):
         if not reload_table:
             return self.ncdata
         else:
-            return self.tabledata_updated        
+            pass
 
     def table2dic(self):
         """
@@ -468,16 +455,15 @@ class AppForm(QMainWindow):
         updated_data = {}
         
 
-        for col in range(self.tableview.columnCount()):
+        for col in range(self.tableview.columnCount() ):
             temp = []
-            for row in range(self.tableview.rowCount()):
+            for row in range(0,self.tableview.rowCount() -1):
                 value = self.tableview.item(row,col).text()
                 if float(value) > 1e34:
                     temp = temp + ['1e+35']
                 else:
                     temp = temp + [float("{0:.4f}".format(float(value)))]
-            updated_data[self.table_header[col]] = temp
-
+            updated_data[str(self.tableview.horizontalHeaderItem(col).text())] = temp
         return updated_data
 
     """-------------------------------------
@@ -486,12 +472,19 @@ class AppForm(QMainWindow):
 
     def load_table(self, reload_table=False):
         
-        self.table_rawdata = self.dic2dic(reload_table=reload_table)
-        trash, self.table_header = self.dic2list(reload_table=reload_table)
-        self.tableview = MyTable(self.table_rawdata, self.dim_list, self.tableview)
+        if not reload_table:
+            self.table_rawdata = self.dic2dic(reload_table=reload_table)
+            self.table_header = self.dic2list()
+            self.tableview = MyTable(self.table_rawdata, self.dim_list, self.tableview)
 
-        self.tableview.setMinimumSize(1000,1000)
-        self.tableview.resizeColumnsToContents()
+            self.tableview.setMinimumSize(1000,1000)
+            self.tableview.resizeColumnsToContents()
+        else:
+            self.table_rawdata = self.dic2dic(reload_table=False)
+            self.tableview.updatedata(self.table_rawdata, self.dim_list)
+
+    def reload_table(self, data, from_table=False):
+        self.tableview.updatedata(data, self.dim_list, from_table)
 
     def load_netcdf(self):
         df = EcoFOCI_netCDF(unicode(self.textbox.text()))
@@ -530,34 +523,62 @@ class MyTable(QTableWidget):
         QTableWidget.__init__(self, parent, *args)
         self.data = data
         self.dim_list = dim_list
-        self.setRowCount(np.shape(data['dep'])[0])
-        self.setColumnCount(len(data) - len(dim_list)+1)
+        self.setRowCount(np.shape(self.data['dep'])[0]+1)
+        self.setColumnCount(len(self.data) - len(self.dim_list))
         self.setmydata()
         self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
     def onClick(self):
         print "Test"
         
-    def flags(self, index):
+    def flags(self):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
-    def setmydata(self):
+    def updatedata(self, data, dim_list, from_table=False):
+        self.dim_list = dim_list
+        self.data.clear()
+        self.data.update(data)
+        self.setRowCount(np.shape(data['dep'])[0]+1)
+        if not from_table:
+                self.setColumnCount(len(data) - len(self.dim_list))
+        else:
+                self.setColumnCount(len(data))
+
+        self.setmydata(from_table)
+
+    def setmydata(self, from_table=False):
  
         horHeaders = []
         valCol = 0
-        for n, key in enumerate(sorted(self.data.keys())):
-            if (key not in self.dim_list) or (key in ['dep','depth']):
-                horHeaders.append(key)
-                try:
-                    for m, item in enumerate(self.data[key][0,:,0,0]):
+        if not from_table:
+            for n, key in enumerate(sorted(self.data.keys())):
+                if (key not in self.dim_list):
+                    horHeaders.append(key)
+                    poparray = np.array(self.data[key])
+                    try:
+                        for m, item in enumerate(poparray[0,:,0,0]):
+                            newitem = QTableWidgetItem(str(item))
+                            newitem.setFlags(self.flags())
+                            self.setItem(m, valCol, newitem)
+                            verHeaders=m
+                    except IndexError:
+                        for m, item in enumerate(poparray[:]):
+                            newitem = QTableWidgetItem(str(item))
+                            self.setItem(m, valCol, newitem)
+                    valCol += 1
+        else:
+            for n, key in enumerate(sorted(self.data.keys())):
+                if (key not in self.dim_list):
+                    print "Updating {key}".format(key=key)
+                    horHeaders.append(key)
+                    poparray = np.array(self.data[key])
+                    for m, item in enumerate(poparray):
                         newitem = QTableWidgetItem(str(item))
+                        newitem.setFlags(self.flags())
                         self.setItem(m, valCol, newitem)
-                except IndexError:
-                    for m, item in enumerate(self.data[key][:]):
-                        newitem = QTableWidgetItem(str(item))
-                        self.setItem(m, valCol, newitem)
-                valCol += 1
+                        verHeaders=m
         self.setHorizontalHeaderLabels(horHeaders)
+        self.setVerticalHeaderLabels([str(x) for x in range(0,verHeaders)])
 
 
 """-------------------------------------Main Loop----------------------------------------------"""
