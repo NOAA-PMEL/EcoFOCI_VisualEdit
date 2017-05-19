@@ -540,9 +540,10 @@ class MyTable(QTableWidget):
         self.data.update(data)
         self.setRowCount(np.shape(data['dep'])[0]+1)
         if not from_table:
-                self.setColumnCount(len(data) - len(self.dim_list))
+            #refreshing from the table doesn't have any spatial dimensions
+            self.setColumnCount(len(data) - len(self.dim_list))
         else:
-                self.setColumnCount(len(data))
+            self.setColumnCount(len(data))
 
         self.setmydata(from_table)
 
@@ -558,7 +559,6 @@ class MyTable(QTableWidget):
                     try:
                         for m, item in enumerate(poparray[0,:,0,0]):
                             newitem = QTableWidgetItem(str(item))
-                            newitem.setFlags(self.flags())
                             self.setItem(m, valCol, newitem)
                             verHeaders=m
                     except IndexError:
@@ -574,7 +574,6 @@ class MyTable(QTableWidget):
                     poparray = np.array(self.data[key])
                     for m, item in enumerate(poparray):
                         newitem = QTableWidgetItem(str(item))
-                        newitem.setFlags(self.flags())
                         self.setItem(m, valCol, newitem)
                         verHeaders=m
         self.setHorizontalHeaderLabels(horHeaders)
