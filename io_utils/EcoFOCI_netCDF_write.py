@@ -93,6 +93,7 @@ class NetCDF_Create_CTD(object):
         self.rootgrpID.EDIT_CMNT01 = EDIT_CMNT01
         self.rootgrpID.SFC_EXTEND = SFC_EXTEND
         self.rootgrpID.History = History
+        self.rootgrpID.PROJECT = kwargs['PROJECT']
 
     def dimension_init(self, time_len=1, depth_len=1):
         """
@@ -255,7 +256,7 @@ class NetCDF_QCD_CTD(object):
     def sbeglobal_atts(self, CREATION_DATE='', DATA_CMNT='', WATER_MASS='', WATER_DEPTH=9999, 
                        PROG_CMNT01='', SFC_EXTEND='', EDIT_CMNT01='', STATION_NAME='',  CRUISE='',
                        SerialNumber='',INST_TYPE='', COORD_SYSTEM='', DATA_TYPE='', CAST='',
-                       BAROMETER='', WIND_DIR='', WIND_SPEED='', AIR_TEMP='',  History=''):
+                       BAROMETER='', WIND_DIR='', WIND_SPEED='', AIR_TEMP='',  History='', **kwargs):
         """
         Assumptions
         -----------
@@ -284,6 +285,7 @@ class NetCDF_QCD_CTD(object):
         self.rootgrpID.EDIT_CMNT01 = EDIT_CMNT01
         self.rootgrpID.SFC_EXTEND = SFC_EXTEND
         self.rootgrpID.History = History
+        self.rootgrpID.PROJECT = kwargs['PROJECT']
      
     def dimension_init(self, time_len=1, depth_len=1):
         """

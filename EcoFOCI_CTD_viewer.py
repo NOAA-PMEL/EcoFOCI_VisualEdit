@@ -59,6 +59,7 @@ class AppForm(QMainWindow):
     example_path = parent_dir+'/example_data/example_ctd_data.nc'
 
     def __init__(self, parent=None, active_file=example_path):
+        super(AppForm, self).__init__(parent)
 
         self.dim_list = ['lat','lon','time','time2']
         QMainWindow.__init__(self, parent)
@@ -335,15 +336,15 @@ class AppForm(QMainWindow):
 
     def create_main_frame(self):
         self.main_frame = QWidget()
-        
+        self.resize(1920,640)
         # Create the mpl Figure and FigCanvas objects. 
         # 5x8 inches, 100 dots-per-inch
         #
         self.dpi = 100
-        self.fig = Figure((5.0, 8.0), dpi=self.dpi)
+        self.fig = Figure((2.5, 8.0), dpi=self.dpi)
         self.canvas = FigureCanvas(self.fig)
         self.canvas.setParent(self.main_frame)
-        
+
         # Since we have only one plot, we can use add_axes 
         # instead of add_subplot, but then the subplot
         # configuration tool in the navigation toolbar wouldn't
@@ -362,7 +363,8 @@ class AppForm(QMainWindow):
         # Other GUI controls
         # 
         self.textbox = QLineEdit()
-        self.textbox.setMinimumWidth(200)
+        self.textbox.setMaximumWidth(400)
+        self.textbox.setMinimumWidth(100)
         self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_draw)
         
         self.draw_button = QPushButton("&Draw")
@@ -394,7 +396,8 @@ class AppForm(QMainWindow):
         self.connect(self.param_dropdown, SIGNAL('activated(int)'), self.on_draw)
         
         self.tableview = QTableWidget()
-
+        self.tableview.setMaximumWidth(450)
+        self.tableview.setMaximumHeight(800)
 
         #
         # Layout with box sizers
@@ -404,23 +407,34 @@ class AppForm(QMainWindow):
         for w in [  self.textbox, self.reload_button, self.draw_button]:
             mhbox.addWidget(w)
             mhbox.setAlignment(w, Qt.AlignVCenter)
+        mhbox.addStretch()
 
         mhbox2 = QHBoxLayout()
 
-        for w2 in [ self.grid_cb, self.update_table_cb, self.datapoints_cb,
-                    self.param_dropdown, self.make_missing_button, self.save_button]:
+        for w2 in [ self.grid_cb, self.update_table_cb, self.datapoints_cb]:
             mhbox2.addWidget(w2)
             mhbox2.setAlignment(w2, Qt.AlignVCenter)
+
+        mhbox2.addStretch()
+        
+        mhbox3 = QVBoxLayout()
+
+        for w2 in [ self.param_dropdown, self.make_missing_button, self.save_button]:
+            mhbox3.addWidget(w2)
+
+        mhbox3.addStretch()
 
         lv_box = QVBoxLayout()
         lv_box.addWidget(self.canvas)
         lv_box.addWidget(self.mpl_toolbar)
         lv_box.addLayout(mhbox)
         lv_box.addLayout(mhbox2)
+        lv_box.addStretch()
 
         h_box = QHBoxLayout()
-        h_box.addLayout(lv_box)
-        h_box.addWidget(self.tableview)
+        h_box.addLayout(lv_box, 7)
+        h_box.addWidget(self.tableview, 10)
+        h_box.addLayout(mhbox3,1)
        
         self.main_frame.setLayout(h_box)
         self.setCentralWidget(self.main_frame)
@@ -442,12 +456,6 @@ class AppForm(QMainWindow):
         header = [key for key in sorted(self.ncdata.keys()) if key not in self.dim_list]
         return header
 
-    def dic2dic(self, reload_table=False):
-        if not reload_table:
-            return self.ncdata
-        else:
-            pass
-
     def table2dic(self):
         """
         cycle through each column
@@ -457,7 +465,7 @@ class AppForm(QMainWindow):
 
         for col in range(self.tableview.columnCount() ):
             temp = []
-            for row in range(0,self.tableview.rowCount() -1):
+            for row in range(0,self.tableview.rowCount() ):
                 value = self.tableview.item(row,col).text()
                 if float(value) > 1e34:
                     temp = temp + ['1e+35']
@@ -473,14 +481,11 @@ class AppForm(QMainWindow):
     def load_table(self, reload_table=False):
         
         if not reload_table:
-            self.table_rawdata = self.dic2dic(reload_table=reload_table)
+            self.table_rawdata = self.ncdata
             self.table_header = self.dic2list()
-            self.tableview = MyTable(self.table_rawdata, self.dim_list, self.tableview)
-
-            self.tableview.setMinimumSize(1000,1000)
-            self.tableview.resizeColumnsToContents()
+            self.tableview = MyTable(self.table_rawdata, self.dim_list, parent=self.tableview)
         else:
-            self.table_rawdata = self.dic2dic(reload_table=False)
+            self.table_rawdata = self.ncdata
             self.tableview.updatedata(self.table_rawdata, self.dim_list)
 
     def reload_table(self, data, from_table=False):
@@ -523,13 +528,16 @@ class MyTable(QTableWidget):
         QTableWidget.__init__(self, parent, *args)
         self.data = data
         self.dim_list = dim_list
-        self.setRowCount(np.shape(self.data['dep'])[0]+1)
+        self.setRowCount(np.shape(self.data['dep'])[0])
         self.setColumnCount(len(self.data) - len(self.dim_list))
         self.setmydata()
+        self.resizeColumnsToContents()
+        self.resizeRowsToContents()
+        self.setMinimumSize(450,800)
         self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
     def onClick(self):
-        print "Test"
+        print("test")
         
     def flags(self):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
@@ -538,7 +546,7 @@ class MyTable(QTableWidget):
         self.dim_list = dim_list
         self.data.clear()
         self.data.update(data)
-        self.setRowCount(np.shape(data['dep'])[0]+1)
+        self.setRowCount(np.shape(data['dep'])[0])
         if not from_table:
             #refreshing from the table doesn't have any spatial dimensions
             self.setColumnCount(len(data) - len(self.dim_list))
@@ -565,6 +573,7 @@ class MyTable(QTableWidget):
                         for m, item in enumerate(poparray[:]):
                             newitem = QTableWidgetItem(str(item))
                             self.setItem(m, valCol, newitem)
+                            verHeaders=m
                     valCol += 1
         else:
             for n, key in enumerate(sorted(self.data.keys())):
@@ -576,8 +585,9 @@ class MyTable(QTableWidget):
                         newitem = QTableWidgetItem(str(item))
                         self.setItem(m, valCol, newitem)
                         verHeaders=m
+
         self.setHorizontalHeaderLabels(horHeaders)
-        self.setVerticalHeaderLabels([str(x) for x in range(0,verHeaders)])
+        self.setVerticalHeaderLabels([str(x) for x in range(0,verHeaders+1)])
 
 
 """-------------------------------------Main Loop----------------------------------------------"""
