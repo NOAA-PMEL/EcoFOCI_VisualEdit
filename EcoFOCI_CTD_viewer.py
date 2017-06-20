@@ -45,6 +45,7 @@ from matplotlib.figure import Figure
 from io_utils.EcoFOCI_netCDF_read import EcoFOCI_netCDF
 from io_utils.EcoFOCI_netCDF_write import NetCDF_QCD_CTD
 from io_utils import ConfigParserLocal
+from calc.EPIC2Datetime import EPIC2Datetime
 
 
 __author__   = 'Shaun Bell'
@@ -71,6 +72,7 @@ class AppForm(QMainWindow):
         self.textbox.setText(active_file)
         self.populate_dropdown()
         self.load_netcdf()
+        self.load_datetime()
         self.create_status_bar()
         self.inverted = False
         self.load_table()
@@ -270,16 +272,21 @@ class AppForm(QMainWindow):
         self.grid_cb.setChecked(True)
         self.update_table_cb.setChecked(False)
         self.load_netcdf()
+        self.load_datetime()
         self.load_table(reload_table=True)
         self.on_draw()
 
     def populate_dropdown(self):
         self.load_netcdf()
+        self.load_datetime()
         self.station_data = {}
         for k in self.vars_dic.keys():
             if k not in ['time','time2','lat','lon']:
                 self.param_dropdown.addItem(k)
-            else:
+            elif k not in ['time2','lat','lon']:
+                self.station_data[k] =str(self.str_time)
+                continue
+            elif k not in ['time2']:
                 self.station_data[k] =str(self.ncdata[k][0])
 
     def create_status_bar(self):
@@ -336,7 +343,7 @@ class AppForm(QMainWindow):
 
     def create_main_frame(self):
         self.main_frame = QWidget()
-        self.resize(1920,640)
+        self.resize(1280,640)
         # Create the mpl Figure and FigCanvas objects. 
         # 5x8 inches, 100 dots-per-inch
         #
@@ -364,7 +371,7 @@ class AppForm(QMainWindow):
         # 
         self.textbox = QLineEdit()
         self.textbox.setMaximumWidth(400)
-        self.textbox.setMinimumWidth(100)
+        self.textbox.setMinimumWidth(200)
         self.connect(self.textbox, SIGNAL('editingFinished ()'), self.on_draw)
         
         self.draw_button = QPushButton("&Draw")
@@ -396,15 +403,15 @@ class AppForm(QMainWindow):
         self.connect(self.param_dropdown, SIGNAL('activated(int)'), self.on_draw)
         
         self.tableview = QTableWidget()
-        self.tableview.setMaximumWidth(450)
-        self.tableview.setMaximumHeight(800)
+        self.tableview.setMaximumWidth(600)
+        self.tableview.setMaximumHeight(600)
 
         #
         # Layout with box sizers
         # 
         mhbox = QHBoxLayout()
         
-        for w in [  self.textbox, self.reload_button, self.draw_button]:
+        for w in [  self.textbox, self.reload_button]:
             mhbox.addWidget(w)
             mhbox.setAlignment(w, Qt.AlignVCenter)
         mhbox.addStretch()
@@ -419,7 +426,7 @@ class AppForm(QMainWindow):
         
         mhbox3 = QVBoxLayout()
 
-        for w2 in [ self.param_dropdown, self.make_missing_button, self.save_button]:
+        for w2 in [ self.param_dropdown, self.make_missing_button, self.draw_button, self.save_button]:
             mhbox3.addWidget(w2)
 
         mhbox3.addStretch()
@@ -498,6 +505,11 @@ class AppForm(QMainWindow):
         self.ncdata = df.ncreadfile_dic()
         df.close()
 
+    def load_datetime(self):
+        dt_from_epic =  EPIC2Datetime(self.ncdata['time'], self.ncdata['time2'])
+        self.str_time = dt_from_epic[0].strftime('%Y-%m-%d %H:%M:%S')
+
+
     def save_netcdf( self, file, **kwargs):
         data=kwargs['data']
 
@@ -533,7 +545,7 @@ class MyTable(QTableWidget):
         self.setmydata()
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
-        self.setMinimumSize(450,800)
+        self.setMinimumSize(600,600)
         self.connect(self.horizontalHeader(), SIGNAL('sectionClicked(int)'), self.onClick)
 
     def onClick(self):

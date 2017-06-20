@@ -93,8 +93,10 @@ class NetCDF_Create_CTD(object):
         self.rootgrpID.EDIT_CMNT01 = EDIT_CMNT01
         self.rootgrpID.SFC_EXTEND = SFC_EXTEND
         self.rootgrpID.History = History
-        self.rootgrpID.PROJECT = kwargs['PROJECT']
-
+        try:
+            self.rootgrpID.PROJECT = kwargs['PROJECT']
+        except:
+            self.rootgrpID.PROJECT = ''
     def dimension_init(self, time_len=1, depth_len=1):
         """
         Assumes
@@ -285,8 +287,11 @@ class NetCDF_QCD_CTD(object):
         self.rootgrpID.EDIT_CMNT01 = EDIT_CMNT01
         self.rootgrpID.SFC_EXTEND = SFC_EXTEND
         self.rootgrpID.History = History
-        self.rootgrpID.PROJECT = kwargs['PROJECT']
-     
+        try:
+            self.rootgrpID.PROJECT = kwargs['PROJECT']
+        except: 
+            self.rootgrpID.PROJECT = ''
+
     def dimension_init(self, time_len=1, depth_len=1):
         """
         Assumes
