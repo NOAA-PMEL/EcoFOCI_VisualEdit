@@ -271,6 +271,7 @@ class AppForm(QMainWindow):
         """
         self.grid_cb.setChecked(True)
         self.update_table_cb.setChecked(False)
+        self.populate_dropdown()
         self.load_netcdf()
         self.load_datetime()
         self.load_table(reload_table=True)
@@ -280,6 +281,7 @@ class AppForm(QMainWindow):
         self.load_netcdf()
         self.load_datetime()
         self.station_data = {}
+        self.param_dropdown.clear()
         for k in self.vars_dic.keys():
             if k not in ['time','time2','lat','lon']:
                 self.param_dropdown.addItem(k)
