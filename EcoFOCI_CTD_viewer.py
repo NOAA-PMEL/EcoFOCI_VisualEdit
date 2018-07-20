@@ -74,7 +74,6 @@ class AppForm(QMainWindow):
         self.load_netcdf()
         self.load_datetime()
         self.create_status_bar()
-        self.inverted = False
         self.load_table()
         self.on_draw()
 
@@ -170,6 +169,10 @@ class AppForm(QMainWindow):
 
 
             self.fig.suptitle(self.station_data, fontsize=12)
+
+            if self.invert_cb.isChecked():
+                self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
+
         else:
 
             var1 = str(self.param_dropdown.currentText())
@@ -194,6 +197,7 @@ class AppForm(QMainWindow):
                     self.axes.plot(
                         xdata,y,
                         picker=5)           
+
             except:
                 #make missing data unplotted
                 xdata = np.copy(self.ncdata[var1][:])
@@ -218,9 +222,9 @@ class AppForm(QMainWindow):
 
             self.fig.suptitle(self.station_data, fontsize=12)
 
-        if not self.inverted:
-            self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
-            self.inverted = True
+            if self.invert_cb.isChecked():
+                self.fig.gca().set_ylim(self.axes.get_ylim()[::-1])
+
         self.canvas.draw()
 
         self.highlight_table_column()
@@ -271,6 +275,7 @@ class AppForm(QMainWindow):
         """
         self.grid_cb.setChecked(True)
         self.update_table_cb.setChecked(False)
+        self.invert_cb.setChecked(True)
         self.populate_dropdown()
         self.load_netcdf()
         self.load_datetime()
@@ -396,6 +401,10 @@ class AppForm(QMainWindow):
         self.grid_cb.setChecked(True)
         self.connect(self.grid_cb, SIGNAL('stateChanged(int)'), self.on_draw)
 
+        self.invert_cb = QCheckBox("Show &Invert")
+        self.invert_cb.setChecked(True)
+        self.connect(self.invert_cb, SIGNAL('stateChanged(int)'), self.on_draw)
+
         self.update_table_cb = QCheckBox("Use Updated Table")
         self.update_table_cb.setChecked(False)
         self.connect(self.update_table_cb, SIGNAL('stateChanged(int)'), self.on_draw)
@@ -420,7 +429,7 @@ class AppForm(QMainWindow):
 
         mhbox2 = QHBoxLayout()
 
-        for w2 in [ self.grid_cb, self.update_table_cb, self.datapoints_cb]:
+        for w2 in [ self.grid_cb, self.invert_cb, self.update_table_cb, self.datapoints_cb]:
             mhbox2.addWidget(w2)
             mhbox2.setAlignment(w2, Qt.AlignVCenter)
 
