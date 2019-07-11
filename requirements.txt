@@ -28,7 +28,7 @@ hdf4=4.2.13=0
 hdf5=1.10.1=2
 heapdict=1.0.0
 intel-openmp=2018.0.3
-jinja2=2.10
+jinja2=2.10.1
 jpeg=9c
 kiwisolver=1.0.1
 krb5=1.14.6=0
@@ -58,7 +58,7 @@ pyqt=4.10.4
 python=2.7.15=0
 python-dateutil=2.7.3
 pytz=2018.5
-pyyaml=3.12
+pyyaml=4.2b1
 qt=4.8.5=3
 readline=7.0=0
 scipy=0.19.1
