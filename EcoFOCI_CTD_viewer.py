@@ -21,19 +21,15 @@ Purpose:
 History:
 --------
 
-2020-9-4: Bell - Begin porting to python3 and pyqt5 (V1)
-2016-10-24: Bell - Begin merging ctd_qt_demo and table_ctd_qt_demo.py (V0)
+2016-10-24: Bell - Begin merging ctd_qt_demo and table_ctd_qt_demo.py
 
 """
 
-
-
 # system stack
 import sys, os, datetime 
-from PyQt5 import QtGui, QtCore, uic, QtWidgets
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+from PyQt4 import QtGui, QtCore
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 
 #science stack
 import numpy as np
@@ -41,8 +37,8 @@ import json
 
 #visual stack
 import matplotlib
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.figure import Figure
 
 #user stack
@@ -55,8 +51,8 @@ from calc.EPIC2Datetime import EPIC2Datetime
 __author__   = 'Shaun Bell'
 __email__    = 'shaun.bell@noaa.gov'
 __created__  = datetime.datetime(2016, 10, 24)
-__modified__ = datetime.datetime(2020, 10, 24)
-__version__  = "1.0.0"
+__modified__ = datetime.datetime(2016, 10, 24)
+__version__  = "0.1.0"
 __status__   = "Development"
 
 class AppForm(QMainWindow):
@@ -240,7 +236,7 @@ class AppForm(QMainWindow):
     def on_table_header_doubleClicked(self, index):
         activeHeader = self.tableview.horizontalHeaderItem(index).text()
         self.param_dropdown.setCurrentIndex(self.param_dropdown.keys().index(activeHeader))
-        print(str(self.param_dropdown.currentText()))
+        print str(self.param_dropdown.currentText())
     """-------------------------------------
     Buttons and Actions
     ----------------------------------------"""
@@ -252,7 +248,7 @@ class AppForm(QMainWindow):
         if self.update_table_cb.isChecked():
             var1 = str(self.param_dropdown.currentText())
             tabledata_updated = self.table2dic()
-            print("setting {var} to {missing}".format(var=var1,missing=missing_value))
+            print "setting {var} to {missing}".format(var=var1,missing=missing_value)
             for col in range(self.tableview.columnCount() ):
                 if (str(self.tableview.horizontalHeaderItem(col).text()) == var1):
                     for k,v in enumerate(tabledata_updated[var1]):
@@ -605,7 +601,7 @@ class MyTable(QTableWidget):
         else:
             for n, key in enumerate(sorted(self.data.keys())):
                 if (key not in self.dim_list):
-                    print("Updating {key}".format(key=key))
+                    print "Updating {key}".format(key=key)
                     horHeaders.append(key)
                     poparray = np.array(self.data[key])
                     for m, item in enumerate(poparray):

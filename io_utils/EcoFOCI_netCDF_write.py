@@ -8,7 +8,6 @@
  
   History:
  --------
- 2020-09-04: Python3 Compliant
  2016-08-02: Migrate to EcoFOCI_MooringAnalysis pkg and unify netcdf creation code so
     that it is no longer instrument dependant
 
@@ -22,8 +21,8 @@ from netCDF4 import Dataset
 
 __author__   = 'Shaun Bell'
 __email__    = 'shaun.bell@noaa.gov'
-__created__  = datetime.datetime(2014, 1, 13)
-__modified__ = datetime.datetime(2014, 12, 2)
+__created__  = datetime.datetime(2014, 01, 13)
+__modified__ = datetime.datetime(2014, 12, 02)
 __version__  = "0.3.0"
 __status__   = "Development"
 
@@ -164,7 +163,7 @@ class NetCDF_Create_CTD(object):
             
         ### add variable attributes
         for i, v in enumerate(var_class): #4dimensional for all vars
-            print(("Adding Variable {0}").format(v))
+            print ("Adding Variable {0}").format(v)#
             v.setncattr('name',rec_var_name[i])
             v.long_name = rec_var_longname[i]
             v.generic_name = rec_var_generic_name[i]
@@ -322,9 +321,9 @@ class NetCDF_QCD_CTD(object):
         rec_var_generic_name, rec_var_FORTRAN, rec_var_units, rec_var_epic = [], [], [], []
         
         for v_name in nchandle.variables.keys():
-            print(v_name)
+            print v_name
             if not v_name in ['time','time2','dep','depth','lat','lon','latitude','longitude']:
-                print("Copying attributes for {0}".format(v_name))
+                print "Copying attributes for {0}".format(v_name)
                 rec_vars.append( v_name )
                 rec_var_name.append( nchandle.variables[v_name].name )
                 rec_var_longname.append( nchandle.variables[v_name].long_name )
@@ -357,7 +356,7 @@ class NetCDF_QCD_CTD(object):
             
         ### add variable attributes
         for i, v in enumerate(var_class): #4dimensional for all vars
-            print(("Adding Variable {0}").format(v))
+            print ("Adding Variable {0}").format(v)#
             v.setncattr('name',rec_var_name[i])
             v.long_name = rec_var_longname[i]
             v.generic_name = rec_var_generic_name[i]
